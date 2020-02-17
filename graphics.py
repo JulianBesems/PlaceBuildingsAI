@@ -1,0 +1,192 @@
+import pygame, sys, random, time, csv, ast, requests, math, pickle
+from io import BytesIO
+from PIL import Image
+from urllib.request import urlopen
+import numpy as np
+from colors import rgb, hex
+from geopy.geocoders import Nominatim
+from datetime import datetime
+from colorhash import ColorHash
+from shapely import geometry
+from copy import copy
+from placer import *
+
+pygame.font.init()
+myfont = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 22)
+myfontI = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 35)
+myfontL = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 50)
+myfontS = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 14)
+
+class Node:
+    def __init__(self, layer, number, pos = None):
+        self.layer = layer
+        self.number = number
+        self.pos = pos
+        self.value = 0
+
+class Graphics:
+    screen_width = 3360 #3360 #1920 #1440 #2560 #1500 #1400 #2000 #1440
+    screen_height = 2100 #2100 #1080 #823 #1600 #1000 #800 #1143 #823
+    screen_centre = [int(screen_width/2), int(screen_height/2)]
+    buffer = int(screen_height/100)
+    ps = int(buffer/10)
+
+    frames = 5
+    ShowNN = True
+
+    NEW_Network = True
+
+    def __init__(self, placer):
+        self._screen = pygame.display.set_mode((self.screen_width, self.screen_height), pygame.FULLSCREEN)
+        self.dot_surface = pygame.surface.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA, 32)
+        self.connection_surface = pygame.surface.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA, 32)
+        self.nn_surface = pygame.surface.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA, 32)
+        self.placer = placer
+        self.puzzle = self.placer.puzzle
+        self.nn = self.puzzle.network
+
+    def draw_screen(self, screen):
+        pygame.init()
+        pygame.display.set_caption('proximity AI')
+
+    def restart(self):
+        pygame._screen.fill(pygame.Color('white'))
+
+    def draw_dot(self, dot, radius, shape, c = None, surface = None):
+        centre = (dot.x, dot.y)
+        if photo[4]:
+            if c:
+                color = c
+            else:
+                color = tuple(hex(photo[4]).rgb)
+            r = radius
+            if shape == "circle":
+                pygame.draw.circle(self.photo_surface, color, centre, r)
+
+    def draw_nn(self):
+        self.puzzle = self.placer.puzzle
+        self.nn = self.puzzle.network
+        r = self.buffer
+        inbetweenX =  min(int((self.screen_width - 10 * self.buffer)/len(self.nn.layer_nodes)), 15 * self.buffer)
+        inbetweenY = min(5 * self.buffer, int((self.screen_height - 10 * self.buffer)/max(self.nn.layer_nodes)))
+        startX = self.screen_centre[0] - int((len(self.nn.layer_nodes)/2) * inbetweenX)
+
+        nodes = []
+        locations = []
+        for i in range(len(self.nn.layer_nodes)):
+            layer = []
+            startY = self.screen_centre[1] - int((self.nn.layer_nodes[i]/2) * inbetweenY)
+            for j in range(self.nn.layer_nodes[i]):
+                pos = [startX + i * inbetweenX, startY + j * inbetweenY]
+                nodes.append(Node(i, j, pos))
+                layer.append([startX + i * inbetweenX, startY + j * inbetweenY])
+            locations.append(layer)
+
+        if self.NEW_Network:
+            for l in range(1, len(self.nn.layer_nodes)):
+                weights = self.nn.params['W' + str(l)]
+                prev_nodes = weights.shape[1]
+                curr_nodes = weights.shape[0]
+                # For each node from the previous layer
+                for prev_node in range(prev_nodes):
+                    # For all current nodes, check to see what the weights are
+                    for curr_node in range(curr_nodes):
+                        # If there is a positive weight, make the line blue
+                        if weights[curr_node, prev_node] > 0:
+                            draw = True
+                            c = min(weights[curr_node, prev_node],1) * 255
+                            colour = [255, 255-c, 255-c]
+                        # If there is a negative (impeding) weight, make the line red
+                        else:
+                            draw = True
+                            c = abs(max(weights[curr_node, prev_node],-1)) * 255
+                            colour = [255-c, 255-c, 255]
+                        if draw:
+                            # Grab locations of the nodes
+                            start = locations[l-1][prev_node]
+                            end = locations[l][curr_node]
+                            # Offset start[0] by diameter of circle so that the line starts on the right of the circle
+                            pygame.draw.line(self.nn_surface, colour, start, end, max(self.ps, 1))
+            self.NEW_Network = False
+
+        inputs = self.puzzle.input_values_as_array
+
+        activations = []
+        for i in range(1, len(self.nn.layer_nodes)-1):
+            activations.append(self.nn.params['A' + str(i)])
+
+        for n in nodes:
+            # Inputs
+            if n.layer == 0:
+                n.value = inputs[n.number][0]
+
+            # Hidden Layers
+            if n.layer > 0 and n.layer < len(self.nn.layer_nodes)-1:
+                try:
+                    n.value = activations[n.layer - 1][n.number][0]
+                except TypeError:
+                    pass
+
+            # Output Layer
+            if n.layer == len(self.nn.layer_nodes)-1:
+                try:
+                    n.value = self.nn.out[n.number][0]
+                except TypeError:
+                    pass
+
+            if n.value>0.5:
+                v = int((abs(min(n.value,1)-1) * 200))
+                pygame.draw.circle(self.nn_surface, [255,255,255], n.pos, r)
+                pygame.draw.line(self.nn_surface, [v,v,v], (n.pos[0]-r, n.pos[1]), (n.pos[0]+r, n.pos[1]), int(r/2))
+                pygame.draw.line(self.nn_surface, [v,v,v], (n.pos[0], n.pos[1]-r), (n.pos[0], n.pos[1]+r), int(r/2))
+            else:
+                v = int(max(n.value,0) * 200)
+                pygame.draw.circle(self.nn_surface, [255,255,255], n.pos, r)
+                pygame.draw.circle(self.nn_surface, [v,v,v], n.pos, r, int(r/2))
+
+
+    def display(self):
+        # Setup pygame screen
+        clock = pygame.time.Clock()
+        self._screen.fill(pygame.Color('white'))
+        self.draw_screen(self._screen)
+        pygame.display.update()
+
+        # Animation loop
+        while True:
+            events = pygame.event.get()
+            for event in events:
+                # Check exit
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        sys.exit()
+
+                    if event.key == pygame.K_n:
+                        if self.ShowNN:
+                            self.ShowNN = False
+                        else:
+                            self.ShowNN = True
+
+            dots = []
+            for _ in range(self.frames):
+                dots.append(self.placer.update())
+
+            for d in dots:
+                if d == "Dead":
+                    self.dot_surface.fill(pygame.Color('white'))
+                    self.NEW_Network = True
+                else:
+                    c = d.colour
+                    pygame.draw.circle(self.dot_surface, c, (d.x*10+20, d.y*10+20), 2)
+
+            self._screen.blit(self.dot_surface, [0,0])
+
+            if self.ShowNN:
+                self.draw_nn()
+                self._screen.blit(self.nn_surface, [0,0])
+
+            pygame.display.update()
