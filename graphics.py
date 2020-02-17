@@ -32,7 +32,7 @@ class Graphics:
     ps = int(buffer/10)
 
     frames = 5
-    ShowNN = True
+    ShowNN = False
 
     NEW_Network = True
 
@@ -50,18 +50,23 @@ class Graphics:
         pygame.display.set_caption('proximity AI')
 
     def restart(self):
-        pygame._screen.fill(pygame.Color('white'))
+        pygame._screen.fill(pygame.Color('black'))
 
-    def draw_dot(self, dot, radius, shape, c = None, surface = None):
-        centre = (dot.x, dot.y)
-        if photo[4]:
-            if c:
-                color = c
-            else:
-                color = tuple(hex(photo[4]).rgb)
-            r = radius
-            if shape == "circle":
-                pygame.draw.circle(self.photo_surface, color, centre, r)
+    def draw_dot(self, dot, c = None, surface = None):
+        r = max(2*self.ps, 2)
+        centre = self.map_coordinates(dot)
+        if c:
+            color = c
+        else:
+            color = dot.colour
+        pygame.draw.circle(self.dot_surface, color, centre, r)
+
+    def map_coordinates(self, p):
+        m = min((self.screen_width-5*self.buffer)/self.puzzle.board_size[0], (self.screen_height-5*self.buffer)/self.puzzle.board_size[1])
+        x = int(p.x * m + 2*self.buffer)
+        y = int(p.y * m + 2*self.buffer)
+        return (x,y)
+
 
     def draw_nn(self):
         self.puzzle = self.placer.puzzle
@@ -131,24 +136,28 @@ class Graphics:
             if n.layer == len(self.nn.layer_nodes)-1:
                 try:
                     n.value = self.nn.out[n.number][0]
+                    outputText = myfont.render(str(round(n.value, 8)), False, (255,255,255))
+                    pygame.draw.rect(self.nn_surface, (0,0,0), pygame.Rect(n.pos[0] + 2*self.buffer,n.pos[1] - 3*self.ps,200,50))
+                    self.nn_surface.blit(outputText, (n.pos[0] + 2*self.buffer, n.pos[1] - 3*self.ps))
                 except TypeError:
                     pass
 
             if n.value>0.5:
-                v = int((abs(min(n.value,1)-1) * 200))
-                pygame.draw.circle(self.nn_surface, [255,255,255], n.pos, r)
+                v = 255 - int((abs(min(n.value,1)-1) * 200))
+                pygame.draw.circle(self.nn_surface, [0,0,0], n.pos, r)
                 pygame.draw.line(self.nn_surface, [v,v,v], (n.pos[0]-r, n.pos[1]), (n.pos[0]+r, n.pos[1]), int(r/2))
                 pygame.draw.line(self.nn_surface, [v,v,v], (n.pos[0], n.pos[1]-r), (n.pos[0], n.pos[1]+r), int(r/2))
             else:
-                v = int(max(n.value,0) * 200)
-                pygame.draw.circle(self.nn_surface, [255,255,255], n.pos, r)
+                v = 255 - int(max(n.value,0) * 200)
+                pygame.draw.circle(self.nn_surface, [0,0,0], n.pos, r)
                 pygame.draw.circle(self.nn_surface, [v,v,v], n.pos, r, int(r/2))
 
 
     def display(self):
         # Setup pygame screen
         clock = pygame.time.Clock()
-        self._screen.fill(pygame.Color('white'))
+        SCREENSHOT_NR = 0
+        self._screen.fill(pygame.Color('black'))
         self.draw_screen(self._screen)
         pygame.display.update()
 
@@ -167,8 +176,10 @@ class Graphics:
 
                     if event.key == pygame.K_n:
                         if self.ShowNN:
+                            self._screen.fill(pygame.Color('black'))
                             self.ShowNN = False
                         else:
+                            self.NEW_Network = True
                             self.ShowNN = True
 
             dots = []
@@ -177,11 +188,12 @@ class Graphics:
 
             for d in dots:
                 if d == "Dead":
-                    self.dot_surface.fill(pygame.Color('white'))
+                    pygame.image.save(self._screen, "screenshots/screenshot" + str(SCREENSHOT_NR) + ".jpeg")
+                    SCREENSHOT_NR +=1
+                    self.dot_surface.fill(pygame.Color('black'))
                     self.NEW_Network = True
                 else:
-                    c = d.colour
-                    pygame.draw.circle(self.dot_surface, c, (d.x*10+20, d.y*10+20), 2)
+                    self.draw_dot(d)
 
             self._screen.blit(self.dot_surface, [0,0])
 

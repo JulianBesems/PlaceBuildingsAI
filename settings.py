@@ -2,7 +2,7 @@ import numpy as np
 
 
 settings = {
-    'board_size':      (20, 20),
+    'board_size':      (100, 100),
 
     'distanceSetting': 'manhattan',
 
@@ -11,6 +11,8 @@ settings = {
     'nrBlocksRange': (150,200),
 
     'fillingOrder' : "random",
+
+    'density_max' : 1,
 
     #### Neural Network related stuff ####
 

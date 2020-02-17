@@ -18,8 +18,8 @@ from genetic_algorithm.mutation import gaussian_mutation, random_uniform_mutatio
 from genetic_algorithm.crossover import simulated_binary_crossover as SBX
 from genetic_algorithm.crossover import uniform_binary_crossover, single_point_binary_crossover
 
-NEW = True
-NR_OLD_ONES = 10
+NEW = False
+NR_OLD_ONES = 20
 
 class Placer:
     def __init__(self):
@@ -61,7 +61,7 @@ class Placer:
 
         else:
             for i in range(NR_OLD_ONES):
-                individual = load_puzzle('population15', 'best_snake'+str(i), self.settings)
+                individual = load_puzzle('population', 'best_snake'+str(i+130), self.settings)
                 individuals.append(individual)
 
         self.best_fitness = np.inf
@@ -122,8 +122,6 @@ class Placer:
                 hidden_layer_architecture = individual.hidden_layer_architecture
                 hidden_activation = individual.hidden_activation
                 output_activation = individual.output_activation
-
-                start_pos = individual.start_pos
 
                 # If the individual is still alive, they survive
                 if individual._fitness < 1000:
