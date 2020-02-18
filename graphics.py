@@ -118,7 +118,11 @@ class Graphics:
 
         activations = []
         for i in range(1, len(self.nn.layer_nodes)-1):
-            activations.append(self.nn.params['A' + str(i)])
+            try:
+                activations.append(self.nn.params['A' + str(i)])
+            except KeyError:
+                activations.append(0)
+
 
         for n in nodes:
             # Inputs
@@ -144,12 +148,12 @@ class Graphics:
 
             if n.value>0.5:
                 v = 255 - int((abs(min(n.value,1)-1) * 200))
-                pygame.draw.circle(self.nn_surface, [0,0,0], n.pos, r)
+                pygame.draw.circle(self.nn_surface, [0,0,0], n.pos, r +1)
                 pygame.draw.line(self.nn_surface, [v,v,v], (n.pos[0]-r, n.pos[1]), (n.pos[0]+r, n.pos[1]), int(r/2))
                 pygame.draw.line(self.nn_surface, [v,v,v], (n.pos[0], n.pos[1]-r), (n.pos[0], n.pos[1]+r), int(r/2))
             else:
                 v = 255 - int(max(n.value,0) * 200)
-                pygame.draw.circle(self.nn_surface, [0,0,0], n.pos, r)
+                pygame.draw.circle(self.nn_surface, [0,0,0], n.pos, r+1)
                 pygame.draw.circle(self.nn_surface, [v,v,v], n.pos, r, int(r/2))
 
 

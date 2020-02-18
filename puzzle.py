@@ -139,33 +139,34 @@ class Puzzle(Individual):
         return self._fitness
 
     def calculate_fitness(self):
-        if len(self.blocks):
-            self._fitness = 10000
-            return True
-
         distSet = self.settings["distanceSetting"].lower()
+        maxDist = self.target_pos[0] + self.target_pos[1]
+        minDist = 1
+        distDiff = maxDist - minDist
+
+
         coherencies = []
-        distancesMin = []
-        distancesAvg = []
+        distScores = []
+        spreads = []
 
         values = list(self.groups.keys())
-
         for v in values:
             blocks = self.groups[v].blocksPlaced
             nrBlocks = len(blocks)
-
             density = self.groups[v].density
 
-            minDistance = np.inf
-            sumDistance = 0
-            sumInD = 0
-            innerDistances = []
+            xSpread = 1
+            ySpread = 1
 
             if nrBlocks <= lowTownValues[0][-1]:
                 sumOptimal = lowTownValues[1][nrBlocks - 1]
             else:
                 a,b,c,d = functionTownValues[0]
                 sumOptimal = int(a*(nrBlocks**b) + c * (nrBlocks**d))
+
+            internalSum = 0
+            internalX = 0
+            internalY = 0
 
             if nrBlocks > 1:
                 pairs = list(itertools.combinations(range(nrBlocks), 2))
@@ -174,47 +175,44 @@ class Puzzle(Individual):
                     b = blocks[p[1]]
                     dx = abs(a.x - b.x)/density
                     dy = abs(a.y - b.y)/density
+                    internalX += dx
+                    internalY += dy
                     if distSet == "manhattan":
-                        innerDistances.append(dx + dy)
-                        sumInD += dx+dy
+                        if dx + dy < density:
+                            dist = max((self.board_size[0]/density) * (density - (dx + dy)), 1)
+                            internalSum += dist
+                        else:
+                            internalSum += dx+dy
                     if distSet == "euclidean":
-                        innerDistances.append(math.sqrt(dx**2 + dy**2))
-                        sumInD += math.sqrt(dx**2 + dy**2)
-
-                coherencies.append(abs(sumInD - sumOptimal)/sumOptimal)
+                        internalSum += math.sqrt(dx**2 + dy**2)
+                coherencies.append(abs(internalSum - sumOptimal)/sumOptimal)
+                spreads.append(max(internalX/internalY, internalY/internalX))
             else:
                 coherencies.append(1)
+                spreads.append(1)
 
+            sumDistance = 0
+            targetDist = v * distDiff + minDist
             for b in blocks:
                 d = abs(b.x - self.target_pos[0]) + abs(b.y - self.target_pos[1])
                 sumDistance += d
-                if d < minDistance:
-                    minDistance = d
-            distancesMin.append(minDistance)
-            distancesAvg.append(sumDistance/nrBlocks)
+            distAverage = sumDistance/nrBlocks
+            distScore = abs(targetDist - distAverage)/targetDist
+            distScores.append(distScore)
 
-        maxDist = math.sqrt(self.nrBlocks) + 1
-        minDist = 1
-        maxVal = max(values)
-        minVal = min(values)
-        valDiff = maxVal - minVal
-        distDiff = maxDist - minDist
-
-        distScores = []
-        for i in range(len(values)):
-            targetDist = values[i] * distDiff + minDist
-            deviance = abs(targetDist - distancesAvg[i])
-            distScores.append(deviance/targetDist)
-
-        fitnessScore = 0
+        coherencyScore = 0
         distScore = 0
+        spreadScore = 0
         for i in range(len(coherencies)):
-            coherency = coherencies[i]
-            dist = distScores[i]
-            #print(dist, coherency)
-            fitnessScore += dist + (coherency -1) **2 - 1
-            distScore += dist
-        self._fitness = fitnessScore / len(coherencies)
+            coherencyScore += coherencies[i]
+            distScore += distScores[i]
+            spreadScore += spreads[i]
+
+        coherencyScore = coherencyScore / len(coherencies)
+        distScore = distScore / len(coherencies)
+        spreadScore = spreadScore / len(coherencies)
+        #print(coherencyScore, distScore, spreadScore)
+        self._fitness = coherencyScore + distScore + spreadScore
         return self._fitness
 
     @property

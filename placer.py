@@ -18,11 +18,11 @@ from genetic_algorithm.mutation import gaussian_mutation, random_uniform_mutatio
 from genetic_algorithm.crossover import simulated_binary_crossover as SBX
 from genetic_algorithm.crossover import uniform_binary_crossover, single_point_binary_crossover
 
-NEW = False
-NR_OLD_ONES = 20
-
 class Placer:
-    def __init__(self):
+    def __init__(self, NEW, old_ones, from_nr):
+        self.new = NEW
+        self.NR_OLD_ONES = old_ones
+        self.from_nr = from_nr
         self.settings = settings
 
         self._SBX_eta = self.settings['SBX_eta']
@@ -49,7 +49,7 @@ class Placer:
 
         individuals: List[Individual] = []
 
-        if NEW:
+        if self.new:
             for _ in range(self.settings['num_parents']):
                 nrG = random.randint(self.nrGroupRange[0], self.nrGroupRange[1])
                 nrC = random.randint(self.nrBlocksRange[0], self.nrBlocksRange[1])
@@ -60,8 +60,8 @@ class Placer:
                 individuals.append(individual)
 
         else:
-            for i in range(NR_OLD_ONES):
-                individual = load_puzzle('population', 'best_snake'+str(i+130), self.settings)
+            for i in range(self.NR_OLD_ONES):
+                individual = load_puzzle('population', 'best_snake' + str(i + self.from_nr) , self.settings)
                 individuals.append(individual)
 
         self.best_fitness = np.inf

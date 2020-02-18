@@ -5,13 +5,16 @@ from placer import Placer
 from nn_viz import NeuralNetworkViz
 
 SHOW = True
+NEW = False
+NR_OLD_ONES = 5
+from_nr = 0
 
 class Main:
     def __init__(self):
         self.time = datetime.datetime.now()
 
     def run(self):
-        placer = Placer()
+        placer = Placer(NEW, NR_OLD_ONES, from_nr)
         if SHOW:
             graphics = Graphics(placer)
             graphics.display()
