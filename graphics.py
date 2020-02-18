@@ -1,4 +1,4 @@
-import pygame, sys, random, time, csv, ast, requests, math, pickle
+import pygame, sys, random, time, csv, ast, requests, math, pickle, operator
 from io import BytesIO
 from PIL import Image
 from urllib.request import urlopen
@@ -10,12 +10,17 @@ from colorhash import ColorHash
 from shapely import geometry
 from copy import copy
 from placer import *
+from misc import *
 
 pygame.font.init()
 myfont = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 22)
 myfontI = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 35)
 myfontL = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 50)
 myfontS = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 14)
+
+bcc = 220
+backgroundColour = pygame.Color(230,225,215)
+textColour = pygame.Color(86,82,71)
 
 class Node:
     def __init__(self, layer, number, pos = None):
@@ -38,6 +43,7 @@ class Graphics:
 
     def __init__(self, placer):
         self._screen = pygame.display.set_mode((self.screen_width, self.screen_height), pygame.FULLSCREEN)
+        self.grid_surface = pygame.surface.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA, 32)
         self.dot_surface = pygame.surface.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA, 32)
         self.connection_surface = pygame.surface.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA, 32)
         self.nn_surface = pygame.surface.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA, 32)
@@ -50,16 +56,23 @@ class Graphics:
         pygame.display.set_caption('proximity AI')
 
     def restart(self):
-        pygame._screen.fill(pygame.Color('black'))
+        self._screen.fill(backgroundColour)
+        self._screen.blit(self.grid_surface, [0,0])
 
-    def draw_dot(self, dot, c = None, surface = None):
-        r = max(2*self.ps, 2)
+    def draw_dot(self, dot, c = None, surface = None, radius = None):
+        if radius:
+            r = radius
+        else:
+            r = max(2*self.ps, 2)
         centre = self.map_coordinates(dot)
         if c:
             color = c
         else:
             color = dot.colour
-        pygame.draw.circle(self.dot_surface, color, centre, r)
+        if surface:
+            pygame.draw.circle(surface, color, centre, r)
+        else:
+            pygame.draw.circle(self.dot_surface, color, centre, r)
 
     def map_coordinates(self, p):
         m = min((self.screen_width-5*self.buffer)/self.puzzle.board_size[0], (self.screen_height-5*self.buffer)/self.puzzle.board_size[1])
@@ -67,14 +80,21 @@ class Graphics:
         y = int(p.y * m + 2*self.buffer)
         return (x,y)
 
+    def draw_grid(self):
+        for i in range(self.puzzle.board_size[0] + 1):
+            for j in range(self.puzzle.board_size[1] + 1):
+                self.draw_dot(Point(i,j), c = textColour, surface = self.grid_surface, radius = 1)
 
     def draw_nn(self):
         self.puzzle = self.placer.puzzle
         self.nn = self.puzzle.network
-        r = self.buffer
-        inbetweenX =  min(int((self.screen_width - 10 * self.buffer)/len(self.nn.layer_nodes)), 15 * self.buffer)
+        r = int(self.buffer * 0.6)
+        inbetweenX =  min(int((self.screen_width - 10 * self.buffer)/len(self.nn.layer_nodes)), 12 * self.buffer)
         inbetweenY = min(5 * self.buffer, int((self.screen_height - 10 * self.buffer)/max(self.nn.layer_nodes)))
-        startX = self.screen_centre[0] - int((len(self.nn.layer_nodes)/2) * inbetweenX)
+        #Centric NN
+        #startX = self.screen_centre[0] - int((len(self.nn.layer_nodes)/2) * inbetweenX)
+        #FromRight NN
+        startX = self.screen_width - int((len(self.nn.layer_nodes)) * inbetweenX)
 
         nodes = []
         locations = []
@@ -99,13 +119,13 @@ class Graphics:
                         # If there is a positive weight, make the line blue
                         if weights[curr_node, prev_node] > 0:
                             draw = True
-                            c = min(weights[curr_node, prev_node],1) * 255
-                            colour = [255, 255-c, 255-c]
+                            c = min(weights[curr_node, prev_node],1) * 200
+                            colour = [200, 200-c, 200-c]
                         # If there is a negative (impeding) weight, make the line red
                         else:
                             draw = True
-                            c = abs(max(weights[curr_node, prev_node],-1)) * 255
-                            colour = [255-c, 255-c, 255]
+                            c = abs(max(weights[curr_node, prev_node],-1)) * 200
+                            colour = [200-c, 200-c, 200]
                         if draw:
                             # Grab locations of the nodes
                             start = locations[l-1][prev_node]
@@ -140,20 +160,20 @@ class Graphics:
             if n.layer == len(self.nn.layer_nodes)-1:
                 try:
                     n.value = self.nn.out[n.number][0]
-                    outputText = myfont.render(str(round(n.value, 8)), False, (255,255,255))
-                    pygame.draw.rect(self.nn_surface, (0,0,0), pygame.Rect(n.pos[0] + 2*self.buffer,n.pos[1] - 3*self.ps,200,50))
+                    outputText = myfont.render(str(round(n.value, 8)), False, textColour)
+                    pygame.draw.rect(self.nn_surface, backgroundColour, pygame.Rect(n.pos[0] + 2*self.buffer,n.pos[1] - 3*self.ps,200,50))
                     self.nn_surface.blit(outputText, (n.pos[0] + 2*self.buffer, n.pos[1] - 3*self.ps))
                 except TypeError:
                     pass
 
             if n.value>0.5:
-                v = 255 - int((abs(min(n.value,1)-1) * 200))
-                pygame.draw.circle(self.nn_surface, [0,0,0], n.pos, r +1)
+                v = int((abs(min(n.value,1)-1) * 200))
+                pygame.draw.circle(self.nn_surface, backgroundColour, n.pos, r +1)
                 pygame.draw.line(self.nn_surface, [v,v,v], (n.pos[0]-r, n.pos[1]), (n.pos[0]+r, n.pos[1]), int(r/2))
                 pygame.draw.line(self.nn_surface, [v,v,v], (n.pos[0], n.pos[1]-r), (n.pos[0], n.pos[1]+r), int(r/2))
             else:
-                v = 255 - int(max(n.value,0) * 200)
-                pygame.draw.circle(self.nn_surface, [0,0,0], n.pos, r+1)
+                v = int(max(n.value,0) * 200)
+                pygame.draw.circle(self.nn_surface, backgroundColour, n.pos, r+1)
                 pygame.draw.circle(self.nn_surface, [v,v,v], n.pos, r, int(r/2))
 
 
@@ -161,8 +181,9 @@ class Graphics:
         # Setup pygame screen
         clock = pygame.time.Clock()
         SCREENSHOT_NR = 0
-        self._screen.fill(pygame.Color('black'))
+        self._screen.fill(backgroundColour)
         self.draw_screen(self._screen)
+        self.draw_grid()
         pygame.display.update()
 
         # Animation loop
@@ -180,11 +201,14 @@ class Graphics:
 
                     if event.key == pygame.K_n:
                         if self.ShowNN:
-                            self._screen.fill(pygame.Color('black'))
+                            self._screen.fill(backgroundColour)
+                            self.draw_grid()
                             self.ShowNN = False
                         else:
                             self.NEW_Network = True
                             self.ShowNN = True
+
+            self._screen.blit(self.grid_surface, [0,0])
 
             dots = []
             for _ in range(self.frames):
@@ -194,7 +218,8 @@ class Graphics:
                 if d == "Dead":
                     pygame.image.save(self._screen, "screenshots/screenshot" + str(SCREENSHOT_NR) + ".jpeg")
                     SCREENSHOT_NR +=1
-                    self.dot_surface.fill(pygame.Color('black'))
+                    self.dot_surface.fill([0,0,0,0])
+                    self.restart()
                     self.NEW_Network = True
                 else:
                     self.draw_dot(d)

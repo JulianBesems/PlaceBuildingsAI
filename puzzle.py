@@ -140,7 +140,7 @@ class Puzzle(Individual):
 
     def calculate_fitness(self):
         distSet = self.settings["distanceSetting"].lower()
-        maxDist = self.target_pos[0] + self.target_pos[1]
+        maxDist = int((self.target_pos[0] + self.target_pos[1])/2)
         minDist = 1
         distDiff = maxDist - minDist
 
@@ -206,7 +206,7 @@ class Puzzle(Individual):
                 d = abs(b.x - self.target_pos[0]) + abs(b.y - self.target_pos[1])
                 sumDistance += d
             distAverage = sumDistance/nrBlocks
-            distScore = abs(targetDist - distAverage)/nrBlocks
+            distScore = distAverage
             distScores.append(distScore)
 
 
@@ -227,11 +227,6 @@ class Puzzle(Individual):
         #print(coherencyScore, distScore, spreadScore, sameScore)
         self._fitness = spreadScore +  (coherencyScore**2) + distScore + sameScore
         return self._fitness
-
-    @property
-    def chromosome(self):
-        # return self._chromosome
-        pass
 
     def look(self, cell):
         array = self.input_values_as_array
