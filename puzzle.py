@@ -148,11 +148,14 @@ class Puzzle(Individual):
         coherencies = []
         distScores = []
         spreads = []
+        sameScore = 0
 
         values = list(self.groups.keys())
         for v in values:
             blocks = self.groups[v].blocksPlaced
             nrBlocks = len(blocks)
+            if nrBlocks == 0:
+                break
             density = self.groups[v].density
 
             xSpread = 1
@@ -167,6 +170,7 @@ class Puzzle(Individual):
             internalSum = 0
             internalX = 0
             internalY = 0
+            sames = 0
 
             if nrBlocks > 1:
                 pairs = list(itertools.combinations(range(nrBlocks), 2))
@@ -181,12 +185,17 @@ class Puzzle(Individual):
                         if dx + dy < density:
                             dist = max((self.board_size[0]/density) * (density - (dx + dy)), 1)
                             internalSum += dist
+                            sames += density - (dx + dy)
                         else:
                             internalSum += dx+dy
                     if distSet == "euclidean":
                         internalSum += math.sqrt(dx**2 + dy**2)
-                coherencies.append(abs(internalSum - sumOptimal)/sumOptimal)
-                spreads.append(max(internalX/internalY, internalY/internalX))
+                coherencies.append(abs(internalSum/sumOptimal))
+                if not internalX == 0 or internalY == 0:
+                    spreads.append(max(internalX/internalY, internalY/internalX))
+                else:
+                    spreads.append(100)
+                sameScore += sames
             else:
                 coherencies.append(1)
                 spreads.append(1)
@@ -197,22 +206,26 @@ class Puzzle(Individual):
                 d = abs(b.x - self.target_pos[0]) + abs(b.y - self.target_pos[1])
                 sumDistance += d
             distAverage = sumDistance/nrBlocks
-            distScore = abs(targetDist - distAverage)/targetDist
+            distScore = abs(targetDist - distAverage)/nrBlocks
             distScores.append(distScore)
+
 
         coherencyScore = 0
         distScore = 0
         spreadScore = 0
-        for i in range(len(coherencies)):
+
+        nrScores = max(1, len(coherencies))
+
+        for i in range(nrScores):
             coherencyScore += coherencies[i]
             distScore += distScores[i]
             spreadScore += spreads[i]
 
-        coherencyScore = coherencyScore / len(coherencies)
-        distScore = distScore / len(coherencies)
-        spreadScore = spreadScore / len(coherencies)
-        #print(coherencyScore, distScore, spreadScore)
-        self._fitness = coherencyScore + distScore + spreadScore
+        coherencyScore = coherencyScore / nrScores
+        distScore = distScore / nrScores
+        spreadScore = spreadScore / nrScores
+        #print(coherencyScore, distScore, spreadScore, sameScore)
+        self._fitness = spreadScore +  (coherencyScore**2) + distScore + sameScore
         return self._fitness
 
     @property

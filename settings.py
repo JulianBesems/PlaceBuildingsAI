@@ -6,9 +6,9 @@ settings = {
 
     'distanceSetting': 'manhattan',
 
-    'nrGroupRange': (1, 1),
+    'nrGroupRange': (10, 15),
 
-    'nrBlocksRange': (150,200),
+    'nrBlocksRange': (200,300),
 
     'fillingOrder' : "random",
 
