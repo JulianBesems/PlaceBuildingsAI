@@ -75,14 +75,14 @@ class Graphics:
             pygame.draw.circle(self.dot_surface, color, centre, r)
 
     def map_coordinates(self, p):
-        m = min((self.screen_width-5*self.buffer)/self.puzzle.board_size[0], (self.screen_height-5*self.buffer)/self.puzzle.board_size[1])
-        x = int(p.x * m + 2*self.buffer)
-        y = int(p.y * m + 2*self.buffer)
+        m = min((self.screen_width-4*self.buffer)/self.puzzle.board_size[0], (self.screen_height-4*self.buffer)/self.puzzle.board_size[1])
+        x = int(p.x * m + 4*self.buffer)
+        y = int(p.y * m + 4*self.buffer)
         return (x,y)
 
     def draw_grid(self):
-        for i in range(self.puzzle.board_size[0] + 1):
-            for j in range(self.puzzle.board_size[1] + 1):
+        for i in range(self.puzzle.board_size[0]):
+            for j in range(self.puzzle.board_size[1]):
                 self.draw_dot(Point(i,j), c = textColour, surface = self.grid_surface, radius = 1)
 
     def draw_nn(self):
@@ -213,12 +213,43 @@ class Graphics:
             for g in self.puzzle.groups:
                 self.draw_dot(self.puzzle.groups[g].point, c = self.puzzle.groups[g].colour, radius = 15)
 
-            dots = []
+            """g = self.puzzle.groups[0]
+            self.draw_dot(g.point, c = (0,0,0), radius = 15)
+            for kz in g.zones:
+                z = g.zones[kz]
+                keys = z.keys()
+                if kz == (0,1):
+                    col = (255,0,0)
+                elif kz == (0,-1):
+                    col = (255,255,0)
+                elif kz == (1,1):
+                    col = (0,255,255)
+                elif kz == (1,-1):
+                    col = (255,0,255)
+                elif kz == (1,0):
+                    col = (0,255,0)
+                elif kz == (-1,1):
+                    col = (0,0,255)
+                elif kz == (-1,-1):
+                    col = (0,0,0)
+                elif kz == (-1,0):
+                    col = (255,255,255)
+
+                for k in keys:
+                    for cell in z[k]:
+                        if k < SCREENSHOT_NR:
+                            self.draw_dot(Point(cell[0][0], cell[0][1]), c = col, radius = 10)
+                        #self.draw_dot(Point(cell[0][0], cell[0][1]), c = (255 - 10*k, 255 - 10*k, 255 - 10*k), radius = 10)"""
+
+            """pygame.image.save(self._screen, "screenshotsViews/screenshot" + str(SCREENSHOT_NR) + ".jpeg")
+            SCREENSHOT_NR +=1"""
+
+            """dots = []
             for _ in range(self.frames):
                 d = self.placer.update()
-                dots.append(d)
+                dots.append(d)"""
 
-            for d in dots:
+            """for d in dots:
                 if d == False:
                     SCREENSHOT_NR +=1
                     self.dot_surface.fill([0,0,0,0])
@@ -226,7 +257,7 @@ class Graphics:
                     self.NEW_Network = True
                     break
                 else:
-                    self.draw_dot(d)
+                    self.draw_dot(d)"""
 
             self._screen.blit(self.dot_surface, [0,0])
 
