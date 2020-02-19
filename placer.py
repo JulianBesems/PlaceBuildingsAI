@@ -64,7 +64,7 @@ class Placer:
                 individual = load_puzzle('population', 'best_snake' + str(i + self.from_nr) , self.settings)
                 individuals.append(individual)
 
-        self.best_fitness = np.inf
+        self.best_fitness = 0
 
         self._current_individual = 0
         self.population = Population(individuals)
@@ -77,15 +77,19 @@ class Placer:
             self.update()
 
     def update(self) -> None:
-        if not self.puzzle.finished:
-            return self.puzzle.fill()
+        if not (self.puzzle.finished or self.puzzle.failed):
+            b = self.puzzle.fill()
+            if b:
+                return self.puzzle.fill()
+            else:
+                return False
 
         # Current individual is dead:
         else:
             fitness = self.puzzle.calculate_fitness()
             print(self._current_individual, fitness)
 
-            if fitness < self.best_fitness:
+            if fitness > self.best_fitness:
                 self.best_fitness = fitness
 
             self._current_individual += 1
@@ -102,7 +106,7 @@ class Placer:
                 current_pop = self.settings['num_parents'] if self.current_generation == 0 else self._next_gen_size
 
             self.puzzle = self.population.individuals[self._current_individual]
-            return "Dead"
+            return False
 
     def next_generation(self):
         self._increment_generation()

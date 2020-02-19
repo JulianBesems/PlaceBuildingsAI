@@ -6,7 +6,7 @@ from .individual import Individual
 
 
 def elitism_selection(population: Population, num_individuals: int) -> List[Individual]:
-    individuals = sorted(population.individuals, key = lambda individual: individual.fitness)
+    individuals = sorted(population.individuals, key = lambda individual: individual.fitness, reverse=True)
     return individuals[:num_individuals]
 
 def roulette_wheel_selection(population: Population, num_individuals: int) -> List[Individual]:
@@ -20,14 +20,13 @@ def roulette_wheel_selection(population: Population, num_individuals: int) -> Li
             if current > pick:
                 selection.append(individual)
                 break
-
     return selection
 
 def tournament_selection(population: Population, num_individuals: int, tournament_size: int) -> List[Individual]:
     selection = []
     for _ in range(num_individuals):
         tournament = np.random.choice(population.individuals, tournament_size)
-        best_from_tournament = min(tournament, key = lambda individual: individual.fitness)
+        best_from_tournament = max(tournament, key = lambda individual: individual.fitness)
         selection.append(best_from_tournament)
 
     return selection

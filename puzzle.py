@@ -178,10 +178,19 @@ class Puzzle(Individual):
     def generate_groups(self):
         if not self.groups:
             self.groups = {}
+            startPoints = []
+            for _ in range(self.nrGroups):
+                added = False
+                while not added:
+                    p = (random.randint(0,self.board.width), random.randint(0,self.board.height))
+                    if not (p in startPoints):
+                        startPoints.append(p)
+                        added = True
+
             for i in range(self.nrGroups):
                 v = random.randint(0, 1000) / 1000
                 c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
-                p = Point(random.randint(0,self.board.width), random.randint(0,self.board.height))
+                p = Point(startPoints[i][0], startPoints[i][1])
                 n = Group(i, v, c, point = p)
                 self.groups[i] = n
             for j in range(self.nrBlocks):
@@ -208,7 +217,8 @@ class Puzzle(Individual):
         return True
 
     def calculate_fitness(self):
-        return (self.progress/self.nrBlocks) * -100
+        self._fitness = (self.progress/self.nrBlocks) * 100
+        return self._fitness
 
     @property
     def chromosome(self):
@@ -216,7 +226,7 @@ class Puzzle(Individual):
         pass
 
     def fill(self) -> bool:
-        if self.finished:
+        if self.finished or self.failed:
             return False
         i = self.progress % len(self.groups)
         k = list(self.groups.keys())[i]
@@ -252,10 +262,14 @@ class Puzzle(Individual):
         views = []
         grP = self.groups[block.nr].point
 
-        for i in range(-1,2):
-            for j in range(-1,2):
-                if not i == j:
-                    views.append(self.board.getZone(grP, [i,j]))
+        views.append(self.board.getZone(grP, [-1,-1]))
+        views.append(self.board.getZone(grP, [-1,0]))
+        views.append(self.board.getZone(grP, [-1,1]))
+        views.append(self.board.getZone(grP, [0,1]))
+        views.append(self.board.getZone(grP, [1,1]))
+        views.append(self.board.getZone(grP, [1,0]))
+        views.append(self.board.getZone(grP, [1,-1]))
+        views.append(self.board.getZone(grP, [0,-11]))
 
         for i in range(len(views)):
             free = False

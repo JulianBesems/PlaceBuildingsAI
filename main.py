@@ -4,10 +4,10 @@ from graphics import Graphics
 from placer import Placer
 from nn_viz import NeuralNetworkViz
 
-NEW = True
-SHOW = NEW
-NR_OLD_ONES = 5
-from_nr = 105
+NEW = False
+SHOW =  not NEW
+NR_OLD_ONES = 10
+from_nr = 24
 
 class Main:
     def __init__(self):

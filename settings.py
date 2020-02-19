@@ -2,13 +2,13 @@ import numpy as np
 
 
 settings = {
-    'board_size':      (100, 100),
+    'board_size':      (20, 20),
 
     'distanceSetting': 'manhattan',
 
-    'nrGroupRange': (10, 15),
+    'nrGroupRange': (5, 5),
 
-    'nrBlocksRange': (200,300),
+    'nrBlocksRange': (150,150),
 
     'fillingOrder' : "random",
 
