@@ -5,7 +5,7 @@ from placer import Placer
 from nn_viz import NeuralNetworkViz
 
 NEW = True
-SHOW = not NEW
+SHOW = NEW
 NR_OLD_ONES = 5
 from_nr = 105
 
