@@ -55,10 +55,11 @@ class Group:
         self.blocksLeft = blocks
         self.blocksPlaced = []
         self.point = point
-        if self.point:
-            self.zones = self.board.getZones(self.point)
-        else:
-            self.zones = None
+        self.zones = None
+        self.board.cells[self.point.x, self.point.y] = Block(self.nr, self.value, self.colour, self.point.x, self.point.y)
+
+    def getZones(self):
+        self.zones = self.board.getZones(self.point, len(self.blocksLeft))
 
     def add_block(self, block):
         block.nr = self.nr
@@ -79,19 +80,9 @@ class Board:
         self.height = height
         self.cells = np.empty([self.width, self.height], Block)
 
-    def getZones(self, pos: Point):
-        zones = {}
-        for i in range(-1,2):
-            for j in range(-1,2):
-                if not (i==0 and j==0):
-                    zones[(i,j)] = self.getZone(pos,(i,j))
-        return zones
-
-
-    def getZone(self, pos: Point, area: Tuple[int,int], mr2 = 1000):
-        pos = pos
+    def getWallDist(self, point, area):
+        pos = point
         p = area
-
         if p == [0,1] or p == [-1,1]:
             mr = pos.x + abs(self.height - pos.y)
         elif p == [1,1] or p == [1,0]:
@@ -100,6 +91,22 @@ class Board:
             mr = abs(self.width - pos.x) + pos.y
         else:
             mr = pos.x + pos.y
+        return mr
+
+    def getZones(self, pos: Point, mr = 1000):
+        zones = {}
+        for i in range(-1,2):
+            for j in range(-1,2):
+                if not (i==0 and j==0):
+                    zones[(i,j)] = self.getZone(pos,(i,j), mr)
+        return zones
+
+
+    def getZone(self, pos: Point, area: Tuple[int,int], mr2 = 1000):
+        pos = pos
+        p = area
+
+        mr = self.getWallDist(pos,p)
 
         maxRange = min(mr, mr2)
 
@@ -113,7 +120,7 @@ class Board:
                     px = pos.x + x
                     py = pos.y + y
                     if -1 < px < self.width and -1 < py < self.height:
-                        c.append(((px,py), self.cells[px,py]))
+                        c.append([(px,py), self.cells[px,py]])
                 cells[i+1] = c
 
         elif p[0] == p[1]:
@@ -125,7 +132,7 @@ class Board:
                     px = pos.x + x
                     py = pos.y + y
                     if -1 < px < self.width and -1 < py < self.height:
-                        c.append(((px,py), self.cells[px,py]))
+                        c.append([(px,py), self.cells[px,py]])
                 cells[i+2] = c
 
         else:
@@ -137,7 +144,7 @@ class Board:
                     px = pos.x + x
                     py = pos.y + y
                     if -1 < px < self.width and -1 < py < self.height:
-                        c.append(((px,py), self.cells[px,py]))
+                        c.append([(px,py), self.cells[px,py]])
                 cells[i+2] = c
         return cells
 
@@ -194,19 +201,26 @@ class Puzzle(Individual):
         if not self.groups:
             self.groups = {}
             startPoints = []
-            for _ in range(self.nrGroups):
+            for _ in range(int(self.nrGroups/2)):
+                added = False
+                while not added:
+                    p = (random.randint(int(self.board.width * 0.25),int(self.board.width*0.75)), random.randint(int(self.board.height *0.25),int(self.board.height*0.75)))
+                    if not (p in startPoints):
+                        startPoints.append(p)
+                        added = True
+
+            for _ in range(int(self.nrGroups/2), self.nrGroups):
                 added = False
                 while not added:
                     p = (random.randint(0,self.board.width-1), random.randint(0,self.board.height-1))
-                    if not (p in startPoints):
+                    if not (p in startPoints or (int(self.board.width * 0.25) < p[0] < int(self.board.width*0.75)) or (int(self.board.height * 0.25) < p[1] < int(self.board.height*0.75))):
                         startPoints.append(p)
                         added = True
 
             for i in range(self.nrGroups):
                 v = random.randint(0, 1000) / 1000
                 c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
-                p = Point(int(self.board.width/2), int(self.board.height/2))
-                #p = Point(startPoints[i][0], startPoints[i][1])
+                p = Point(startPoints[i][0], startPoints[i][1])
                 n = Group(i, v, self.board, c, point = p)
                 self.groups[i] = n
             for j in range(self.nrBlocks):
@@ -218,7 +232,8 @@ class Puzzle(Individual):
             for k in list(self.groups.keys()):
                 if self.groups[k].finished:
                     self.groups.pop(k)
-
+        for g in self.groups:
+            self.groups[g].getZones()
         self.nrGroups = len(self.groups)
 
     @property
@@ -231,6 +246,7 @@ class Puzzle(Individual):
             if not self.groups[g].finished:
                 return False
         return True
+
 
     def calculate_fitness(self):
         self._fitness = (self.progress/self.nrBlocks) * 100
@@ -254,57 +270,67 @@ class Puzzle(Individual):
         return b
 
     def placeBlock(self, b):
-        views = self.look(b)
+        empties = self.look(b)
         self.network.feed_forward(self.input_values_as_array)
         output = self.network.out
         d = np.argmax(output)
-        v = views[d]
-        i = int(self.input_values_as_array[d*3][0])
-        cells = v[i]
-        for c in cells:
-            if c[1] == None:
-                self.board.cells[c[0]] = b
-                b.x = c[0][0]
-                b.y = c[0][1]
-                self.groups[b.nr].blocksLeft.pop()
-                self.groups[b.nr].blocksPlaced.append(b)
-                if self.groups[b.nr].finished:
-                    self.finishedGroups[b.nr] = self.groups[b.nr]
-                    self.groups.pop(b.nr)
-                return b
-        return None
+        try:
+            c = empties[d]
+        except KeyError:
+            return None
+        b.x = c[0]
+        b.y = c[1]
+        self.board.cells[c] = b
+        self.groups[b.nr].blocksLeft.pop()
+        self.groups[b.nr].blocksPlaced.append(b)
+        if self.groups[b.nr].finished:
+            self.finishedGroups[b.nr] = self.groups[b.nr]
+            self.groups.pop(b.nr)
+        return self.board.cells[c]
 
     def look(self, block):
         array = self.input_values_as_array
-        views = []
-        grP = self.groups[block.nr].point
+        group = self.groups[block.nr]
+        views = group.zones
 
-        views.append(self.board.getZone(grP, [-1,-1]))
-        views.append(self.board.getZone(grP, [-1,0]))
-        views.append(self.board.getZone(grP, [-1,1]))
-        views.append(self.board.getZone(grP, [0,1]))
-        views.append(self.board.getZone(grP, [1,1]))
-        views.append(self.board.getZone(grP, [1,0]))
-        views.append(self.board.getZone(grP, [1,-1]))
-        views.append(self.board.getZone(grP, [0,-11]))
-
-        for i in range(len(views)):
-            free = len(views[i])
-            wallDist = len(views[i])
-            otherDist = len(views[i])
-            for j in range(len(views[i])):
-                if any(x[1] == None for x in views[i][j]):
-                    if j < free:
-                        free = j
-                if any((x[1] != None and x[1].nr != block.nr) for x in views[i][j]):
-                    otherDist = j
-                if free < wallDist and otherDist < wallDist:
+        empties = {}
+        i = 0
+        for p in views:
+            wallDist = self.board.getWallDist(group.point, p)+1
+            free = False
+            otherDist = False
+            pj = 0
+            for j in views[p]:
+                for c in views[p][j]:
+                    if self.board.cells[c[0]] == None:
+                        if not free:
+                            free = j
+                            empties[i] = c[0]
+                    if self.board.cells[c[0]] != None and self.board.cells[c[0]].nr != block.nr:
+                        if not otherDist:
+                            otherDist = j
+                    if free:# and otherDist:
+                        break
+                if free:# and otherDist:
                     break
-            array[i * 3] = free
-            array[i * 3 + 1] = wallDist
-            array[i * 3 + 2] = otherDist
 
-        return views
+            if free:
+                array[i * 3] = 1/free
+            else:
+                array[i * 3] = 0
+
+            if (wallDist - free):
+                array[i * 3 + 1] = 1/(wallDist - free)
+            else:
+                array[i * 3 + 1] = 0
+
+            if otherDist:
+                array[i * 3 + 2] = 1/otherDist
+            else:
+                array[i * 3 + 2] = 0
+            i+=1
+
+        return empties
 
 def save_puzzle(population_folder: str, individual_name: str, puzzle: Puzzle, settings: Dict[str, Any]) -> None:
     # Make population folder if it doesn't exist
