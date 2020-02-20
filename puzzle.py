@@ -322,7 +322,7 @@ class Puzzle(Individual):
             if (wallDist - free):
                 array[i * 3 + 1] = 1/(wallDist - free)
             else:
-                array[i * 3 + 1] = 0
+                array[i * 3 + 1] = 1
 
             if otherDist:
                 array[i * 3 + 2] = 1/otherDist
