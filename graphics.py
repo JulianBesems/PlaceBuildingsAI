@@ -63,7 +63,7 @@ class Graphics:
         if radius:
             r = radius
         else:
-            r = max(2*self.ps, 10)
+            r = max(3*self.ps, 10)
         centre = self.map_coordinates(dot)
         if c:
             color = c
@@ -72,7 +72,11 @@ class Graphics:
         if surface:
             pygame.draw.circle(surface, color, centre, r)
         else:
-            pygame.draw.circle(self.dot_surface, color, centre, r)
+            try:
+                v = max(int((1 - (1-dot.value) * 2) * r), 1)
+                pygame.draw.circle(self.dot_surface, color, centre, r, v)
+            except AttributeError:
+                pygame.draw.circle(self.dot_surface, color, centre, r)
 
     def map_coordinates(self, p):
         m = min((self.screen_width-4*self.buffer)/self.puzzle.board_size[0], (self.screen_height-4*self.buffer)/self.puzzle.board_size[1])
@@ -181,6 +185,7 @@ class Graphics:
         # Setup pygame screen
         clock = pygame.time.Clock()
         SCREENSHOT_NR = 0
+        groupNr = 0
         self._screen.fill(backgroundColour)
         self.draw_screen(self._screen)
         self.draw_grid()
@@ -224,8 +229,9 @@ class Graphics:
                 d = self.placer.update()
                 dots.append(d)"""
 
+
             if d == -1:
-                g = self.puzzle.groups[0]
+                g = self.puzzle.groups[d.nr]
                 for kz in g.zones:
                     z = g.zones[kz]
                     keys = z.keys()
@@ -248,7 +254,7 @@ class Graphics:
 
                     for k in keys:
                         for cell in z[k]:
-                            if k < 3:
+                            if True: #k < 3:
                                 self.draw_dot(Point(cell[0][0], cell[0][1]), c = col, radius = 10)
                             #self.draw_dot(Point(cell[0][0], cell[0][1]), c = (255 - 10*k, 255 - 10*k, 255 - 10*k), radius = 10)
 
@@ -256,7 +262,6 @@ class Graphics:
                 for b in c:
                     if b:
                         self.draw_dot(b)
-
 
             if d:
                 pass

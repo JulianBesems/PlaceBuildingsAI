@@ -59,7 +59,7 @@ class Group:
         self.board.cells[self.point.x, self.point.y] = Block(self.nr, self.value, self.colour, self.point.x, self.point.y)
 
     def getZones(self):
-        self.zones = self.board.getZones(self.point, len(self.blocksLeft))
+        self.zones = self.board.getZones(self.point)#, len(self.blocksLeft))
 
     def add_block(self, block):
         block.nr = self.nr
@@ -83,14 +83,16 @@ class Board:
     def getWallDist(self, point, area):
         pos = point
         p = area
-        if p == [0,1] or p == [-1,1]:
-            mr = pos.x + abs(self.height - pos.y)
-        elif p == [1,1] or p == [1,0]:
-            mr = abs(self.width+1 - pos.x) + abs(self.height - pos.y)
-        elif p == [0,-1] or p == [1,-1]:
-            mr = abs(self.width - pos.x) + pos.y
-        else:
+        if p == (-1,-1) or p == (-1,0):
             mr = pos.x + pos.y
+        elif p == (0,-1) or p == (1,-1):
+            mr = self.width - pos.x + pos.y
+        elif p == (-1,1) or p == (0,1):
+            mr = pos.x  + self.height - pos.y
+        elif p == (1,1) or p == (1,0):
+            mr = self.height + self.width - pos.x - pos.y
+        else:
+            mr = None
         return mr
 
     def getZones(self, pos: Point, mr = 1000):
@@ -219,7 +221,8 @@ class Puzzle(Individual):
 
             for i in range(self.nrGroups):
                 v = random.randint(0, 1000) / 1000
-                c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
+                c = (int(v*255), int(v*255), int(v*255) )
+                #c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
                 p = Point(startPoints[i][0], startPoints[i][1])
                 n = Group(i, v, self.board, c, point = p)
                 self.groups[i] = n
@@ -273,6 +276,7 @@ class Puzzle(Individual):
         empties = self.look(b)
         self.network.feed_forward(self.input_values_as_array)
         output = []
+        outval = None
         i=0
         for x in list(self.network.out):
             output.append([i,x])
@@ -280,25 +284,28 @@ class Puzzle(Individual):
         output.sort(key = lambda x: x[1])
         found = False
         while output and not found:
-            d = output.pop()[0]
+            d = output.pop()
             try:
-                c = empties[d]
+                c = empties[d[0]]
+                outval = d[1]
                 found = True
             except KeyError:
                 pass
 
         if not found:
+            print(empties)
             return None
 
         b.x = c[0]
         b.y = c[1]
+        b.value = outval
         self.board.cells[c] = b
         self.groups[b.nr].blocksLeft.pop()
         self.groups[b.nr].blocksPlaced.append(b)
         if self.groups[b.nr].finished:
             self.finishedGroups[b.nr] = self.groups[b.nr]
             self.groups.pop(b.nr)
-        return self.board.cells[c]
+        return b
 
     def look(self, block):
         array = self.input_values_as_array
@@ -341,7 +348,8 @@ class Puzzle(Individual):
             else:
                 array[i + 16] = 0
             i+=1
-
+        if not empties:
+            print(views)
         return empties
 
 def save_puzzle(population_folder: str, individual_name: str, puzzle: Puzzle, settings: Dict[str, Any]) -> None:
