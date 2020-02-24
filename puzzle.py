@@ -272,12 +272,24 @@ class Puzzle(Individual):
     def placeBlock(self, b):
         empties = self.look(b)
         self.network.feed_forward(self.input_values_as_array)
-        output = self.network.out
-        d = np.argmax(output)
-        try:
-            c = empties[d]
-        except KeyError:
+        output = []
+        i=0
+        for x in list(self.network.out):
+            output.append([i,x])
+            i +=1
+        output.sort(key = lambda x: x[1])
+        found = False
+        while output and not found:
+            d = output.pop()[0]
+            try:
+                c = empties[d]
+                found = True
+            except KeyError:
+                pass
+
+        if not found:
             return None
+
         b.x = c[0]
         b.y = c[1]
         self.board.cells[c] = b
@@ -309,25 +321,25 @@ class Puzzle(Individual):
                     if self.board.cells[c[0]] != None and self.board.cells[c[0]].nr != block.nr:
                         if not otherDist:
                             otherDist = j
-                    if free:# and otherDist:
+                    if free and otherDist:
                         break
-                if free:# and otherDist:
+                if free and otherDist:
                     break
 
             if free:
-                array[i * 3] = 1/free
+                array[i] = 1/free
             else:
-                array[i * 3] = 0
+                array[i] = 0
 
             if (wallDist - free):
-                array[i * 3 + 1] = 1/(wallDist - free)
+                array[i + 8] = 1/(wallDist - free)
             else:
-                array[i * 3 + 1] = 1
+                array[i + 8] = 1
 
             if otherDist:
-                array[i * 3 + 2] = 1/otherDist
+                array[i + 16] = 1/otherDist
             else:
-                array[i * 3 + 2] = 0
+                array[i + 16] = 0
             i+=1
 
         return empties

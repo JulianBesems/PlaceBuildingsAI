@@ -61,7 +61,7 @@ class Placer:
 
         else:
             for i in range(self.NR_OLD_ONES):
-                individual = load_puzzle('population', 'best_snake' + str(i + self.from_nr) , self.settings)
+                individual = load_puzzle('population5', 'best_snake' + str(i + self.from_nr) , self.settings)
                 individuals.append(individual)
 
         self.best_fitness = 0
@@ -92,6 +92,7 @@ class Placer:
             if fitness > self.best_fitness:
                 self.best_fitness = fitness
 
+            self.exportNNWeights()
             self._current_individual += 1
 
             if (self.current_generation > 0 and self._current_individual == self._next_gen_size) or\
@@ -101,12 +102,56 @@ class Placer:
                 print('----Max fitness:', self.best_fitness)
                 print('----Average fitness:', self.population.average_fitness)
                 save_puzzle('population', 'best_snake'+str(self.current_generation), self.population.fittest_individual, self.settings)
+                #self.exportNNWeights()
                 self.next_generation()
             else:
                 current_pop = self.settings['num_parents'] if self.current_generation == 0 else self._next_gen_size
 
             self.puzzle = self.population.individuals[self._current_individual]
             return False
+
+    def exportNNWeights(self):
+        nn = self.puzzle.network
+        nodes = []
+        connections = []
+        for l in range(1, len(nn.layer_nodes)):
+            layerNodes = []
+            weights = nn.params['W' + str(l)]
+            connections.append(weights)
+            for n in range(weights.shape[1]):
+                layerNodes.append(n)
+            nodes.append(layerNodes)
+            if l == len(nn.layer_nodes)-1:
+                layerNodes = []
+                for n in range(weights.shape[0]):
+                    layerNodes.append(n)
+                nodes.append(layerNodes)
+        entries = []
+        for a in nodes[3]:
+            entriesLayer = []
+            for _ in nodes[0]:
+                entriesLayer.append([])
+            for b in nodes[2]:
+                for c in nodes[1]:
+                    for d in nodes[0]:
+                        score = connections[2][a,b] * connections[1][b,c] * connections[0][c,d]
+                        entriesLayer[d].append(score)
+            entries.append(entriesLayer)
+
+        with open("nnWeights/" + str("population5c") + ".csv", 'a') as newcsvfile:
+            writer = csv.writer(newcsvfile)
+            row = []
+            #print(entries[0][0])
+            for e in entries:
+                for c in e:
+                    row.extend(c)
+            #print(len(row))
+            writer.writerow(row)
+
+
+
+
+
 
     def next_generation(self):
         self._increment_generation()
