@@ -59,7 +59,7 @@ class Group:
         self.board.cells[self.point.x, self.point.y] = Block(self.nr, self.value, self.colour, self.point.x, self.point.y)
 
     def getZones(self):
-        self.zones = self.board.getZones(self.point)#, len(self.blocksLeft))
+        self.zones = self.board.getZones(self.point, len(self.blocksLeft))
 
     def add_block(self, block):
         block.nr = self.nr
@@ -278,11 +278,14 @@ class Puzzle(Individual):
         output = []
         outval = None
         i=0
+
+        # Make it go for secondary choices
         for x in list(self.network.out):
             output.append([i,x])
             i +=1
         output.sort(key = lambda x: x[1])
         found = False
+
         while output and not found:
             d = output.pop()
             try:
@@ -295,6 +298,16 @@ class Puzzle(Individual):
         if not found:
             print(empties)
             return None
+
+        # Have it fail if it takes the wrong turn
+        """
+        d = np.argmax(self.network.out)
+        try:
+            c = empties[d]
+            outval = list(self.network.out)[d]
+            found = True
+        except KeyError:
+            return None"""
 
         b.x = c[0]
         b.y = c[1]

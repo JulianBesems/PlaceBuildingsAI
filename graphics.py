@@ -188,7 +188,7 @@ class Graphics:
         groupNr = 0
         self._screen.fill(backgroundColour)
         self.draw_screen(self._screen)
-        self.draw_grid()
+        #self.draw_grid()
         pygame.display.update()
 
         # Animation loop
