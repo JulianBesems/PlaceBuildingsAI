@@ -92,7 +92,7 @@ class Placer:
             if fitness > self.best_fitness:
                 self.best_fitness = fitness
 
-            self.exportNNWeights()
+            #self.exportNNWeights()
             self._current_individual += 1
 
             if (self.current_generation > 0 and self._current_individual == self._next_gen_size) or\

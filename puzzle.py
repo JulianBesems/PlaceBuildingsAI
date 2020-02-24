@@ -59,7 +59,7 @@ class Group:
         self.board.cells[self.point.x, self.point.y] = Block(self.nr, self.value, self.colour, self.point.x, self.point.y)
 
     def getZones(self):
-        self.zones = self.board.getZones(self.point, len(self.blocksLeft))
+        self.zones = self.board.getZones(self.point)#, len(self.blocksLeft))
 
     def add_block(self, block):
         block.nr = self.nr
@@ -100,7 +100,7 @@ class Board:
         for i in range(-1,2):
             for j in range(-1,2):
                 if not (i==0 and j==0):
-                    zones[(i,j)] = self.getZone(pos,(i,j), mr)
+                    zones[(i,j)] = [self.getZone(pos,(i,j), mr), None]
         return zones
 
 
@@ -181,11 +181,11 @@ class Puzzle(Individual):
         # Each "Vision" has 3 distances it tracks: wall, apple and self
         # there are also one-hot encoded direction and one-hot encoded tail direction,
         # each of which have 4 possibilities.
-        num_inputs = 24 #@TODO: Add one-hot back in
+        num_inputs = 36 #@TODO: Add one-hot back in
         self.input_values_as_array: np.ndarray = np.zeros((num_inputs, 1))
         self.network_architecture = [num_inputs]                          # Inputs
         self.network_architecture.extend(self.hidden_layer_architecture)  # Hidden layers
-        self.network_architecture.append(8)                               # 4 outputs, ['u', 'd', 'l', 'r']
+        self.network_architecture.append(12)                               # 4 outputs, ['u', 'd', 'l', 'r']
         self.network = FeedForwardNetwork(self.network_architecture,
                                           get_activation_by_name(self.hidden_activation),
                                           get_activation_by_name(self.output_activation))
@@ -221,8 +221,8 @@ class Puzzle(Individual):
 
             for i in range(self.nrGroups):
                 v = random.randint(0, 1000) / 1000
-                c = (int(v*255), int(v*255), int(v*255) )
-                #c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
+                #c = (int(v*255), int(v*255), int(v*255) )
+                c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
                 p = Point(startPoints[i][0], startPoints[i][1])
                 n = Group(i, v, self.board, c, point = p)
                 self.groups[i] = n
@@ -273,29 +273,62 @@ class Puzzle(Individual):
         return b
 
     def placeBlock(self, b):
-        empties = self.look(b)
+        empties, emptiesH = self.look(b)
         self.network.feed_forward(self.input_values_as_array)
-        output = []
+        out = list(self.network.out)
+        outputDir = []
+        outputH = []
         outval = None
-        i=0
+        ind=0
 
         # Make it go for secondary choices
-        for x in list(self.network.out):
-            output.append([i,x])
-            i +=1
-        output.sort(key = lambda x: x[1])
+        for i in range(-1,2):
+            for j in range(-1,2):
+                if not (i==0 and j==0):
+                    outputDir.append([(i,j),out[ind]])
+                    ind +=1
+        outputDir.sort(key = lambda x: x[1])
+        outputDirCopy = outputDir.copy()
+
+        outputH = [[(-1,0), out[8]], [(1,0), out[9]], [(0,1), out[10]], [(0,-1), out[11]]]
+        outputH.sort(key = lambda x: x[1], reverse = True)
+
         found = False
 
-        while output and not found:
-            d = output.pop()
+        tries = 0
+        while outputDir and not found:
+            tries +=1
+            d = outputDir.pop()
+            e = None
             try:
-                c = empties[d[0]]
-                outval = d[1]
-                found = True
+                e = emptiesH[d[0]]
+                if e:
+                    for o in outputH:
+                        try:
+                            c = e[o[0]][0]
+                            outval = d[1]
+                            found = True
+                            break
+                        except KeyError:
+                            pass
+                else:
+                    try:
+                        c = empties[d[0]]
+                        outval = d[1]
+                        found = True
+                    except KeyError:
+                        pass
             except KeyError:
-                pass
+                try:
+                    c = empties[d[0]]
+                    outval = d[1]
+                    found = True
+                except KeyError:
+                    pass
 
         if not found:
+            print(e)
+            print(outputDirCopy)
             print(empties)
             return None
 
@@ -313,6 +346,7 @@ class Puzzle(Individual):
         b.y = c[1]
         b.value = outval
         self.board.cells[c] = b
+        self.groups[b.nr].zones[d[0]][1] = c
         self.groups[b.nr].blocksLeft.pop()
         self.groups[b.nr].blocksPlaced.append(b)
         if self.groups[b.nr].finished:
@@ -326,21 +360,46 @@ class Puzzle(Individual):
         views = group.zones
 
         empties = {}
+        emptiesH = {}
         i = 0
         for p in views:
             wallDist = self.board.getWallDist(group.point, p)+1
             free = False
             otherDist = False
+            filledSelf = 1
             pj = 0
-            for j in views[p]:
-                for c in views[p][j]:
+
+            head = views[p][1]
+            headAdj = [(-1,0), (1,0), (0,1), (0,-1)]
+            headFrees = {}
+            if head:
+                for h in headAdj:
+                    try:
+                        hc = (head[0] + h[0], head[1] + h[1])
+                        hCell = self.board.cells[hc]
+                        dist = abs(group.point.x - hc[0]) + abs(group.point.y - hc[1])
+                        try:
+                            hView = views[p][0][dist]
+                            for c in hView:
+                                if c[0] == hc and self.board.cells[c[0]] == None:
+                                    headFrees[h] = [(head[0] + h[0], head[1] + h[1])]
+                        except KeyError:
+                            pass
+                    except IndexError:
+                        pass
+                emptiesH[p] = headFrees
+
+            for j in views[p][0]:
+                for c in views[p][0][j]:
                     if self.board.cells[c[0]] == None:
                         if not free:
                             free = j
-                            empties[i] = c[0]
-                    if self.board.cells[c[0]] != None and self.board.cells[c[0]].nr != block.nr:
+                            empties[p] = c[0]
+                    elif self.board.cells[c[0]].nr != block.nr:
                         if not otherDist:
                             otherDist = j
+                    elif self.board.cells[c[0]].nr == block.nr:
+                        filledSelf +=1
                     if free and otherDist:
                         break
                 if free and otherDist:
@@ -360,10 +419,12 @@ class Puzzle(Individual):
                 array[i + 16] = 1/otherDist
             else:
                 array[i + 16] = 0
+
+            array[i + 24] = 1/filledSelf
+
             i+=1
-        if not empties:
-            print(views)
-        return empties
+
+        return empties, emptiesH
 
 def save_puzzle(population_folder: str, individual_name: str, puzzle: Puzzle, settings: Dict[str, Any]) -> None:
     # Make population folder if it doesn't exist
