@@ -272,6 +272,24 @@ class Puzzle(Individual):
         self.progress += 1
         return b
 
+    def getHeadDirs(self, p, out):
+        if p == (1,-1):
+            return [[(-1,0), out[8]], [(0,-1), out[9]], [(1,0), out[10]], [(0,1), out[11]]]
+        elif p == (1,0):
+            return [[(-1,0), out[8]], [(0,1), out[9]], [(1,0), out[10]], [(0,-1), out[11]]]
+        elif p == (1,1):
+            return [[(0,-1), out[8]], [(1,0), out[9]], [(0,1), out[10]], [(-1,0), out[11]]]
+        elif p == (0,1):
+            return [[(0,-1), out[8]], [(-1,0), out[9]], [(0,1), out[10]], [(1,0), out[11]]]
+        elif p == (-1,1):
+            return [[(1,0), out[8]], [(0,1), out[9]], [(-1,0), out[10]], [(0,-1), out[11]]]
+        elif p == (-1,0):
+            return [[(1,0), out[8]], [(0,-1), out[9]], [(-1,0), out[10]], [(0,1), out[11]]]
+        elif p == (-1,-1):
+            return [[(0,1), out[8]], [(-1,0), out[9]], [(0,-1), out[10]], [(1,0), out[11]]]
+        elif p == (0,-1):
+            return [[(0,1), out[8]], [(1,0), out[9]], [(0,-1), out[10]], [(-1,0), out[11]]]
+
     def placeBlock(self, b):
         empties, emptiesH = self.look(b)
         self.network.feed_forward(self.input_values_as_array)
@@ -290,8 +308,8 @@ class Puzzle(Individual):
         outputDir.sort(key = lambda x: x[1])
         outputDirCopy = outputDir.copy()
 
-        outputH = [[(-1,0), out[8]], [(1,0), out[9]], [(0,1), out[10]], [(0,-1), out[11]]]
-        outputH.sort(key = lambda x: x[1], reverse = True)
+        """outputH = [[(-1,0), out[8]], [(1,0), out[9]], [(0,1), out[10]], [(0,-1), out[11]]]
+        outputH.sort(key = lambda x: x[1], reverse = True)"""
 
         found = False
 
@@ -301,6 +319,8 @@ class Puzzle(Individual):
             d = outputDir.pop()
             e = None
             try:
+                outputH = self.getHeadDirs(d[0], out)
+                outputH.sort(key = lambda x: x[1], reverse = True)
                 e = emptiesH[d[0]]
                 if e:
                     for o in outputH:
