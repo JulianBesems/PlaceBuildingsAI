@@ -56,3 +56,9 @@ class Point(object):
 
     def __str__(self) -> str:
         return '({}, {})'.format(self.x, self.y)
+
+class Circle(object):
+    def __init__(self, p: Point, r: float):
+        self.x = p.x
+        self.y = p.y
+        self.r = r

@@ -20,6 +20,8 @@ def roulette_wheel_selection(population: Population, num_individuals: int) -> Li
             if current > pick:
                 selection.append(individual)
                 break
+    if not len(selection) == 2:
+        print(selection)
     return selection
 
 def tournament_selection(population: Population, num_individuals: int, tournament_size: int) -> List[Individual]:

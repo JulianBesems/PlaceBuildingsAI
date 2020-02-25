@@ -159,7 +159,11 @@ class Puzzle(Individual):
                  hidden_layer_architecture: Optional[List[int]] = [20, 9],
                  hidden_activation: Optional[ActivationFunction] = 'relu',
                  output_activation: Optional[ActivationFunction] = 'sigmoid',
-                 groups: Optional[List[Group]] = None):
+                 groups: Optional[List[Group]] = None,
+                 cMatrix: Optional[List[List[float]]] = None,
+                 values: Optional[List[float]] = None,
+                 sizes: Optional[List[int]] = None
+                 ):
 
         self.board_size = board_size
         self.nrGroups = nrGroups
@@ -170,6 +174,9 @@ class Puzzle(Individual):
 
         self.progress = 0
         self._fitness = 0
+        self.cMatrix = cMatrix
+        self.values = values
+        self.sizes = sizes
         self.groups = groups
         self.finishedGroups = {}
         self.board = Board(self.board_size[0], self.board_size[1])
@@ -199,11 +206,133 @@ class Puzzle(Individual):
 
         self.generate_groups()
 
+    def generateCM(self):
+        cm = np.empty([self.nrGroups, self.nrGroups])
+        for i in range(self.nrGroups):
+            for j in range(i+1, self.nrGroups):
+                v = random.randint(0, 1000) / 1000
+                cm[i,j] = v
+                cm[j,i] = v
+        self.cMatrix = cm
+
+    def getCircleIntersect(self, c1, c2):
+        d = math.sqrt(abs(c1.x-c2.x)**2 + abs(c1.y-c2.y)**2)
+        if (d > c1.r + c2.r) or (d < abs(c1.r - c2.r) or (d==0 and c1.r == c2.r)):
+            #print(c1.x, c1.y, c1.r, "     ", c2.x, c2.y, c2.r)
+            return None
+        a = (c1.r**2 - c2.r**2 + d**2)/(2*d)
+
+        p3x = c1.x + a*(c2.x - c1.x)/d
+        p3y = c1.y + a*(c2.y - c1.y)/d
+
+        h = math.sqrt(c1.r**2 - a**2)
+
+        p4x = p3x + h*(c2.y - c1.y)/d
+        p4y = p3y - h*(c2.x - c1.x)/d
+
+        p5x = p3x - h*(c2.y - c1.y)/d
+        p5y = p3y + h*(c2.x - c1.x)/d
+
+        return [(p4x, p4y), (p5x, p5y)]
+
+    def findClosestFreeOne(self, p, list):
+        c = 1
+        found = False
+        while True:
+            for i in range(-1, 2):
+                for j in range(-1,2):
+                    p2 = (p[0] + c*i, p[1] + c*j)
+                    if  -1 < p2[0] < self.board.width and -1 < p2[1] < self.board.height:
+                        if not p2 in list:
+                            return p2
+            print(c)
+            c +=1
+
+    def generateStartPoints(self):
+
+        middle = (int(self.board.width/2), int(self.board.height/2))
+        maxR = min((int(self.board.width/2), int(self.board.height/2))) -1
+        startPoints = [middle]
+
+        values = self.values
+
+        for i in range(self.nrGroups):
+            v = values[i]
+            if len(startPoints) > 1:
+                c1 = Circle(Point(middle[0], middle[1]), max(int(round(v*maxR)), 1))
+                rel = self.cMatrix[i, i-1]
+                r2 = int(max(round(max(rel*(values[i-1]*maxR + v *maxR), (v *maxR - values[i-1]*maxR))), 1))
+                c2 = Circle(Point(startPoints[-1][0], startPoints[-1][1]), r2)
+                points = self.getCircleIntersect(c1,c2)
+                i = 0
+                while not points:
+                    c2a = Circle(Point(startPoints[-1][0], startPoints[-1][1]), r2 + i)
+                    c2b = Circle(Point(startPoints[-1][0], startPoints[-1][1]), r2 - i)
+                    pointsA = self.getCircleIntersect(c1,c2a)
+                    pointsB = self.getCircleIntersect(c1,c2b)
+                    if pointsA:
+                        points = pointsA
+                    elif pointsB:
+                        points = pointsB
+                    i+=1
+
+                if len(startPoints) > 3:
+                    d1 = abs(points[0][0] - startPoints[-2][0]) + abs(points[0][1] - startPoints[-2][1])
+                    d2 = abs(points[1][0] - startPoints[-2][0]) + abs(points[1][1] - startPoints[-2][1])
+                    if self.cMatrix[i,i-2] < 0.5:
+                        if d1<d2:
+                            if not (int(points[0][0]), int(points[0][1])) in startPoints:
+                                startPoints.append((int(points[0][0]), int(points[0][1])))
+                            else:
+                                startPoints.append(self.findClosestFreeOne((int(points[0][0]), int(points[0][1])), startPoints))
+                        else:
+                            if not (int(points[1][0]), int(points[1][1])) in startPoints:
+                                startPoints.append((int(points[1][0]), int(points[1][1])))
+                            else:
+                                startPoints.append(self.findClosestFreeOne((int(points[1][0]), int(points[1][1])), startPoints))
+                    else:
+                        if d1<d2:
+                            if not (int(points[1][0]), int(points[1][1])) in startPoints:
+                                startPoints.append((int(points[1][0]), int(points[1][1])))
+                            else:
+                                startPoints.append(self.findClosestFreeOne((int(points[1][0]), int(points[1][1])), startPoints))
+                        else:
+                            if not (int(points[0][0]), int(points[0][1])) in startPoints:
+                                startPoints.append((int(points[0][0]), int(points[0][1])))
+                            else:
+                                startPoints.append(self.findClosestFreeOne((int(points[0][0]), int(points[0][1])), startPoints))
+                else:
+                    if not (int(points[0][0]), int(points[0][1])) in startPoints:
+                        startPoints.append((int(points[0][0]), int(points[0][1])))
+                    else:
+                        startPoints.append(self.findClosestFreeOne((int(points[0][0]), int(points[0][1])), startPoints))
+            else:
+                startPoints.append((middle[0], middle[1] - max(int(v*maxR), 1)))
+
+        startPoints.remove(middle)
+        return startPoints
+
+    def getValues(self):
+        values = []
+        for i in range(self.nrGroups):
+            values.append(random.randint(1, 1000) / 1000)
+        values.sort()
+        self.values = values
+
     def generate_groups(self):
         if not self.groups:
             self.groups = {}
-            startPoints = []
-            for _ in range(int(self.nrGroups/2)):
+
+            if not self.values:
+                self.getValues()
+            #print(self.values)
+
+            if not self.cMatrix:
+                self.generateCM()
+
+            startPoints = self.generateStartPoints()
+
+            """for _ in range(int(self.nrGroups/2)):
                 added = False
                 while not added:
                     p = (random.randint(int(self.board.width * 0.25),int(self.board.width*0.75)), random.randint(int(self.board.height *0.25),int(self.board.height*0.75)))
@@ -217,12 +346,12 @@ class Puzzle(Individual):
                     p = (random.randint(0,self.board.width-1), random.randint(0,self.board.height-1))
                     if not (p in startPoints or (int(self.board.width * 0.25) < p[0] < int(self.board.width*0.75)) or (int(self.board.height * 0.25) < p[1] < int(self.board.height*0.75))):
                         startPoints.append(p)
-                        added = True
+                        added = True"""
 
             for i in range(self.nrGroups):
-                v = random.randint(0, 1000) / 1000
-                #c = (int(v*255), int(v*255), int(v*255) )
-                c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
+                v = self.values[i]
+                c = (int(v*255), int(v*255), int(v*255) )
+                #c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
                 p = Point(startPoints[i][0], startPoints[i][1])
                 n = Group(i, v, self.board, c, point = p)
                 self.groups[i] = n
@@ -232,9 +361,9 @@ class Puzzle(Individual):
                 i = list(self.groups.keys())[r]
                 self.groups[i].add_block(b)
 
-            for k in list(self.groups.keys()):
+            """for k in list(self.groups.keys()):
                 if self.groups[k].finished:
-                    self.groups.pop(k)
+                    self.groups.pop(k)"""
         for g in self.groups:
             self.groups[g].getZones()
         self.nrGroups = len(self.groups)
@@ -252,7 +381,49 @@ class Puzzle(Individual):
 
 
     def calculate_fitness(self):
-        self._fitness = (self.progress/self.nrBlocks) * 100
+        #self._fitness = (self.progress/self.nrBlocks) * 100
+        fitnessList = []
+        for i in self.finishedGroups:
+            g1 = self.finishedGroups[i]
+            vals = self.cMatrix[i]
+            maxVal = 0
+            imaxVal = None
+            for j in range(len(vals)):
+                if (not i == j) and vals[j] > maxVal:
+                    maxVal = vals[j]
+                    imaxVal = j
+            g2 = self.finishedGroups[imaxVal]
+            smallestDist = self.board.width + self.board.height
+            nearestBlock = None
+
+            if not g1.blocksPlaced:
+                fitnessList.append(0)
+            else:
+                for b in g1.blocksPlaced:
+                    d = (abs(b.x - g2.point.x) + abs(b.y - g2.point.y))
+                    if d < smallestDist:
+                        smallestDist = d
+                        nearestBlock = b
+
+                smallestDistBlock = smallestDist
+                for b in g2.blocksPlaced:
+                    d = (abs(b.x - nearestBlock.x) + abs(b.y - nearestBlock.y))
+                    if d < smallestDistBlock:
+                        smallestDistBlock = d
+                        nearestBlock = b
+
+                totDist = (abs(g1.point.x - g2.point.x) + abs(g1.point.y - g2.point.y))
+                if not totDist:
+                    print(g1.point, g2.point)
+                    gFitness = 0
+                else:
+                    gFitness = (smallestDistBlock/totDist) * maxVal * len(g1.blocksPlaced)
+            #print(gFitness)
+            fitnessList.append(gFitness)
+        fitness = 1
+        for f in fitnessList:
+            fitness += f
+        self._fitness = 1/fitness
         return self._fitness
 
     @property
@@ -386,12 +557,14 @@ class Puzzle(Individual):
             wallDist = self.board.getWallDist(group.point, p)+1
             free = False
             otherDist = False
+            otherValue = False
             filledSelf = 1
             pj = 0
 
             head = views[p][1]
             headAdj = [(-1,0), (1,0), (0,1), (0,-1)]
             headFrees = {}
+
             if head:
                 for h in headAdj:
                     try:
@@ -416,7 +589,8 @@ class Puzzle(Individual):
                             free = j
                             empties[p] = c[0]
                     elif self.board.cells[c[0]].nr != block.nr:
-                        if not otherDist:
+                        if free:
+                            otherValue = self.cMatrix[self.board.cells[c[0]].nr, block.nr]
                             otherDist = j
                     elif self.board.cells[c[0]].nr == block.nr:
                         filledSelf +=1
@@ -435,10 +609,12 @@ class Puzzle(Individual):
             else:
                 array[i + 8] = 1
 
-            if otherDist:
+            """if otherDist:
                 array[i + 16] = 1/otherDist
             else:
-                array[i + 16] = 0
+                array[i + 16] = 0"""
+
+            array[i + 16] = otherValue
 
             array[i + 24] = 1/filledSelf
 

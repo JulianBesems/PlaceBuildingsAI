@@ -6,7 +6,7 @@ settings = {
 
     'distanceSetting': 'manhattan',
 
-    'nrGroupRange': (12, 12),
+    'nrGroupRange': (10, 10),
 
     'nrBlocksRange': (450,450),
 
@@ -57,9 +57,9 @@ settings = {
     ## Selection ##
 
     # Number of parents that will be used for reproducing
-    'num_parents':                 500,
+    'num_parents':                 50,
     # Number of offspring that will be created. Keep num_offspring >= num_parents
-    'num_offspring':               1000,
+    'num_offspring':               100,
     # The selection type to use for the next generation.
     # If selection_type == 'plus':
     #     Then the top num_parents will be chosen from (num_offspring + num_parents)
