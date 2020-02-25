@@ -2,13 +2,13 @@ import numpy as np
 
 
 settings = {
-    'board_size':      (60, 60),
+    'board_size':      (30, 30),
 
     'distanceSetting': 'manhattan',
 
-    'nrGroupRange': (20, 20),
+    'nrGroupRange': (12, 12),
 
-    'nrBlocksRange': (2000,2000),
+    'nrBlocksRange': (450,450),
 
     'fillingOrder' : "random",
 
@@ -57,9 +57,9 @@ settings = {
     ## Selection ##
 
     # Number of parents that will be used for reproducing
-    'num_parents':                 300,
+    'num_parents':                 500,
     # Number of offspring that will be created. Keep num_offspring >= num_parents
-    'num_offspring':               600,
+    'num_offspring':               1000,
     # The selection type to use for the next generation.
     # If selection_type == 'plus':
     #     Then the top num_parents will be chosen from (num_offspring + num_parents)
