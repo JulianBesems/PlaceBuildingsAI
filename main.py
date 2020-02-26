@@ -4,9 +4,9 @@ from graphics import Graphics
 from placer import Placer
 from nn_viz import NeuralNetworkViz
 
-NEW = False
+NEW = True
 SHOW =  not NEW
-NR_OLD_ONES = 2
+NR_OLD_ONES = 3
 from_nr = 0
 
 class Main:

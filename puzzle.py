@@ -428,7 +428,16 @@ class Puzzle(Individual):
                     else:
                         groupFitness += ((totDist - smallestDistBlock) / nrBlocksTotal) * gti[1]
                 #print(gFitness)
+
+                internalDist = 0
+                for b in g1.blocksPlaced:
+                    internalDist += (abs(b.x - g1.point.x) + abs(b.y - g1.point.y))
+
+                groupFitness += max(0, (nrBlocksTotal / 4) - (internalDist/nrBlocksTotal))
+
                 fitnessList.append(groupFitness)
+
+
 
         fitness = 0
 

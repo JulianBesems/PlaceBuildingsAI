@@ -101,7 +101,7 @@ class Placer:
                 print('======================= Gneration {} ======================='.format(self.current_generation))
                 print('----Max fitness:', self.best_fitness)
                 print('----Average fitness:', self.population.average_fitness)
-                save_puzzle('population', 'best_snake'+str(self.current_generation), self.population.fittest_individual, self.settings)
+                save_puzzle('population9', 'best_snake'+str(self.current_generation), self.population.fittest_individual, self.settings)
                 #self.exportNNWeights()
                 self.next_generation()
             else:
