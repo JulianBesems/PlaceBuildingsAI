@@ -398,7 +398,7 @@ class Puzzle(Individual):
             if not g1.blocksPlaced:
                 fitnessList.append(0)
             else:
-                targetGroups = []
+                """targetGroups = []
                 for j in range(len(vals)):
                     if (not i == j) and vals[j] > 0.5:
                         targetGroups.append((j, vals[j]))
@@ -427,13 +427,17 @@ class Puzzle(Individual):
                         groupFitness += 0
                     else:
                         groupFitness += ((totDist - smallestDistBlock) / nrBlocksTotal) * gti[1]
-                #print(gFitness)
+                #print(gFitness)"""
 
-                internalDist = 0
+                """internalDist = 0
                 for b in g1.blocksPlaced:
-                    internalDist += (abs(b.x - g1.point.x) + abs(b.y - g1.point.y))
+                    internalDist += (abs(b.x - g1.point.x) + abs(b.y - g1.point.y))"""
+                target = int(nrBlocksTotal / 8) + 1
+                for v in g1.zoneBlocks:
+                    diff = abs(len(g1.zoneBlocks[v]) - target)
+                    groupFitness += max((target-diff), 0)/target
 
-                groupFitness += max(0, (nrBlocksTotal / 4) - (internalDist/nrBlocksTotal))
+                #groupFitness += max(0, (nrBlocksTotal / 4) - (internalDist/nrBlocksTotal))
 
                 fitnessList.append(groupFitness)
 
@@ -589,8 +593,9 @@ class Puzzle(Individual):
             head = views[p][1]
             headAdj = [(-1,0), (1,0), (0,1), (0,-1)]
             headFrees = {}
-
+            headToWall = self.board.width + self.board.height
             if head:
+                headToWall = max(min(head[0], self.board.width - head[0], head[1], self.board.height - head[1]),1)
                 for h in headAdj:
                     try:
                         hc = (head[0] + h[0], head[1] + h[1])
@@ -628,7 +633,7 @@ class Puzzle(Individual):
                 array[i] = 0
 
             if (wallDist - free):
-                array[i + 8] = 1/(wallDist - free)
+                array[i + 8] = 1/min((wallDist - free), headToWall)
             else:
                 array[i + 8] = 1
 
