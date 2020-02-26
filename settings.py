@@ -2,11 +2,13 @@ import numpy as np
 
 
 settings = {
-    'board_size':      (30, 30),
+    'board_size':      (40, 40),
 
     'distanceSetting': 'manhattan',
 
     'nrGroupRange': (10, 10),
+
+    "Values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.8, 0.9, 0.91],
 
     'nrBlocksRange': (450,450),
 
@@ -21,7 +23,7 @@ settings = {
     # Output layer activation is specific to the output layer
     'output_layer_activation':     'sigmoid',  # Options are [relu, sigmoid, tanh, linear, leaky_relu]
     # Hidden network architecture describes the number of nodes in each hidden layer
-    'hidden_network_architecture': [24, 18],   # A list containing number of nodes in each hidden layer
+    'hidden_network_architecture': [30, 20],   # A list containing number of nodes in each hidden layer
     # Number of directions the snake can "see" in
     'vision_type':                 8,          # Options are [4, 8, 16]
 

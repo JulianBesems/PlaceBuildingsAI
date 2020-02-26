@@ -73,16 +73,16 @@ class Graphics:
         else:
             color = dot.colour
         if surface:
-            pygame.draw.rect(surface, color, (centre[0] - int(r/2), centre [1] - int(r/2), int(r/2)*2, int(r/2)*2))
-            #pygame.draw.circle(surface, color, centre, r)
+            #pygame.draw.rect(surface, color, (centre[0] - int(r/2), centre [1] - int(r/2), int(r/2)*2, int(r/2)*2))
+            pygame.draw.circle(surface, color, centre, r)
         else:
             try:
                 v = max(int((1 - (1-dot.value) * 2) * r), 1)
-                pygame.draw.rect(self.dot_surface, color, (centre, (w,h)))
-                #pygame.draw.circle(self.dot_surface, color, centre, r, v)
+                #pygame.draw.rect(self.dot_surface, color, (centre, (w,h)))
+                pygame.draw.circle(self.dot_surface, color, centre, r, v)
             except AttributeError:
-                pygame.draw.rect(self.dot_surface, color, (centre, (w,h)))
-                #pygame.draw.circle(self.dot_surface, color, centre, r)
+                #pygame.draw.rect(self.dot_surface, color, (centre, (w,h)))
+                pygame.draw.circle(self.dot_surface, color, centre, r)
 
     def map_coordinates(self, p):
         m = min((self.screen_width-4*self.buffer)/self.puzzle.board_size[0], (self.screen_height-4*self.buffer)/self.puzzle.board_size[1])
@@ -224,7 +224,7 @@ class Graphics:
             for g in self.puzzle.groups:
                 self.draw_dot(self.puzzle.groups[g].point, c = self.puzzle.groups[g].colour, radius = 15)
 
-            """pygame.image.save(self._screen, "screenshotsViews/screenshot" + str(SCREENSHOT_NR) + ".jpeg")
+            """pygame.image.save(self._screen, "screenshotsTests/screenshot" + str(SCREENSHOT_NR) + ".jpeg")
             SCREENSHOT_NR +=1"""
 
 
@@ -273,6 +273,7 @@ class Graphics:
                 pass
                 #self.draw_dot(d)
             else:
+                pygame.image.save(self._screen, "screenshotsTests/screenshot" + str(SCREENSHOT_NR) + ".jpeg")
                 SCREENSHOT_NR +=1
                 self.restart()
                 self.dot_surface.fill([0,0,0,0])

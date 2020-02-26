@@ -56,10 +56,13 @@ class Group:
         self.blocksPlaced = []
         self.point = point
         self.zones = None
+        self.zoneBlocks = {}
         self.board.cells[self.point.x, self.point.y] = Block(self.nr, self.value, self.colour, self.point.x, self.point.y)
 
     def getZones(self):
         self.zones = self.board.getZones(self.point)#, len(self.blocksLeft))
+        for z  in self.zones:
+            self.zoneBlocks[z] = []
 
     def add_block(self, block):
         block.nr = self.nr
@@ -156,7 +159,7 @@ class Puzzle(Individual):
                  nrGroups: int,
                  nrBlocks: int,
                  chromosome: Optional[Dict[str, List[np.ndarray]]] = None,
-                 hidden_layer_architecture: Optional[List[int]] = [20, 9],
+                 hidden_layer_architecture: Optional[List[int]] = [24, 18],
                  hidden_activation: Optional[ActivationFunction] = 'relu',
                  output_activation: Optional[ActivationFunction] = 'sigmoid',
                  groups: Optional[List[Group]] = None,
@@ -245,13 +248,12 @@ class Puzzle(Individual):
                     if  -1 < p2[0] < self.board.width and -1 < p2[1] < self.board.height:
                         if not p2 in list:
                             return p2
-            print(c)
             c +=1
 
     def generateStartPoints(self):
 
         middle = (int(self.board.width/2), int(self.board.height/2))
-        maxR = min((int(self.board.width/2), int(self.board.height/2))) -1
+        maxR = min((int(self.board.width/3), int(self.board.height/3)))
         startPoints = [middle]
 
         values = self.values
@@ -324,6 +326,7 @@ class Puzzle(Individual):
             self.groups = {}
 
             if not self.values:
+                #self.values = self.settings["Values"]
                 self.getValues()
             #print(self.values)
 
@@ -364,6 +367,7 @@ class Puzzle(Individual):
             """for k in list(self.groups.keys()):
                 if self.groups[k].finished:
                     self.groups.pop(k)"""
+
         for g in self.groups:
             self.groups[g].getZones()
         self.nrGroups = len(self.groups)
@@ -383,47 +387,54 @@ class Puzzle(Individual):
     def calculate_fitness(self):
         #self._fitness = (self.progress/self.nrBlocks) * 100
         fitnessList = []
+
         for i in self.finishedGroups:
+            groupFitness = 0
+
             g1 = self.finishedGroups[i]
+            nrBlocksTotal = len(g1.blocksPlaced)
             vals = self.cMatrix[i]
-            maxVal = 0
-            imaxVal = None
-            for j in range(len(vals)):
-                if (not i == j) and vals[j] > maxVal:
-                    maxVal = vals[j]
-                    imaxVal = j
-            g2 = self.finishedGroups[imaxVal]
-            smallestDist = self.board.width + self.board.height
-            nearestBlock = None
 
             if not g1.blocksPlaced:
                 fitnessList.append(0)
             else:
-                for b in g1.blocksPlaced:
-                    d = (abs(b.x - g2.point.x) + abs(b.y - g2.point.y))
-                    if d < smallestDist:
-                        smallestDist = d
-                        nearestBlock = b
+                targetGroups = []
+                for j in range(len(vals)):
+                    if (not i == j) and vals[j] > 0.5:
+                        targetGroups.append((j, vals[j]))
 
-                smallestDistBlock = smallestDist
-                for b in g2.blocksPlaced:
-                    d = (abs(b.x - nearestBlock.x) + abs(b.y - nearestBlock.y))
-                    if d < smallestDistBlock:
-                        smallestDistBlock = d
-                        nearestBlock = b
+                for gti in targetGroups:
+                    gt = self.finishedGroups[gti[0]]
+                    smallestDist = self.board.width + self.board.height
+                    nearestBlock = None
 
-                totDist = (abs(g1.point.x - g2.point.x) + abs(g1.point.y - g2.point.y))
-                if not totDist:
-                    print(g1.point, g2.point)
-                    gFitness = 0
-                else:
-                    gFitness = (smallestDistBlock/totDist) * maxVal * len(g1.blocksPlaced)
-            #print(gFitness)
-            fitnessList.append(gFitness)
-        fitness = 1
+                    for b in g1.blocksPlaced:
+                        d = (abs(b.x - gt.point.x) + abs(b.y - gt.point.y))
+                        if d < smallestDist:
+                            smallestDist = d
+                            nearestBlock = b
+
+                    smallestDistBlock = smallestDist
+                    for b in gt.blocksPlaced:
+                        d = (abs(b.x - nearestBlock.x) + abs(b.y - nearestBlock.y))
+                        if d < smallestDistBlock:
+                            smallestDistBlock = d
+                            nearestBlock = b
+
+                    totDist = (abs(g1.point.x - gt.point.x) + abs(g1.point.y - gt.point.y))
+                    if not totDist:
+                        print(g1.point, g2.point)
+                        groupFitness += 0
+                    else:
+                        groupFitness += ((totDist - smallestDistBlock) / nrBlocksTotal) * gti[1]
+                #print(gFitness)
+                fitnessList.append(groupFitness)
+
+        fitness = 0
+
         for f in fitnessList:
             fitness += f
-        self._fitness = 1/fitness
+        self._fitness = fitness
         return self._fitness
 
     @property
@@ -540,6 +551,7 @@ class Puzzle(Individual):
         self.groups[b.nr].zones[d[0]][1] = c
         self.groups[b.nr].blocksLeft.pop()
         self.groups[b.nr].blocksPlaced.append(b)
+        self.groups[b.nr].zoneBlocks[d[0]].append(b)
         if self.groups[b.nr].finished:
             self.finishedGroups[b.nr] = self.groups[b.nr]
             self.groups.pop(b.nr)
@@ -550,15 +562,19 @@ class Puzzle(Individual):
         group = self.groups[block.nr]
         views = group.zones
 
+        nrBlocksTotal = len(group.blocksLeft) + len(group.blocksPlaced)
+
         empties = {}
         emptiesH = {}
         i = 0
         for p in views:
             wallDist = self.board.getWallDist(group.point, p)+1
+            filledSelf = len(group.zones[p])
+
             free = False
             otherDist = False
             otherValue = False
-            filledSelf = 1
+
             pj = 0
 
             head = views[p][1]
@@ -591,9 +607,7 @@ class Puzzle(Individual):
                     elif self.board.cells[c[0]].nr != block.nr:
                         if free:
                             otherValue = self.cMatrix[self.board.cells[c[0]].nr, block.nr]
-                            otherDist = j
-                    elif self.board.cells[c[0]].nr == block.nr:
-                        filledSelf +=1
+                            otherDist = j - free
                     if free and otherDist:
                         break
                 if free and otherDist:
@@ -609,14 +623,14 @@ class Puzzle(Individual):
             else:
                 array[i + 8] = 1
 
-            """if otherDist:
-                array[i + 16] = 1/otherDist
+            if otherDist:
+                array[i + 16] = 1/(otherDist * (1-otherValue))
             else:
-                array[i + 16] = 0"""
+                array[i + 16] = 0
 
-            array[i + 16] = otherValue
+            #array[i + 16] = otherValue
 
-            array[i + 24] = 1/filledSelf
+            array[i + 24] = filledSelf/nrBlocksTotal
 
             i+=1
 

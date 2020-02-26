@@ -61,7 +61,7 @@ class Placer:
 
         else:
             for i in range(self.NR_OLD_ONES):
-                individual = load_puzzle('population5', 'best_snake' + str(i + self.from_nr) , self.settings)
+                individual = load_puzzle('population', 'best_snake' + str(i + self.from_nr) , self.settings)
                 individuals.append(individual)
 
         self.best_fitness = 0
