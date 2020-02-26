@@ -350,8 +350,8 @@ class Puzzle(Individual):
 
             for i in range(self.nrGroups):
                 v = self.values[i]
-                c = (int(v*255), int(v*255), int(v*255) )
-                #c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
+                #c = (int(v*255), int(v*255), int(v*255) )
+                c = (random.randint(20, 200), random.randint(20, 200), random.randint(20, 200))
                 p = Point(startPoints[i][0], startPoints[i][1])
                 n = Group(i, v, self.board, c, point = p)
                 self.groups[i] = n
