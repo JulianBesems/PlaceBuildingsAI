@@ -2,7 +2,7 @@ import numpy as np
 
 
 settings = {
-    'board_size':      (40, 40),
+    'board_size':      (80, 80),
 
     'distanceSetting': 'manhattan',
 
@@ -10,7 +10,7 @@ settings = {
 
     "Values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.8, 0.9, 0.91],
 
-    'nrBlocksRange': (450,450),
+    'nrBlocksRange': (1600,1600),
 
     'fillingOrder' : "random",
 
