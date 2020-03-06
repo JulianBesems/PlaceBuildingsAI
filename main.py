@@ -5,9 +5,9 @@ from placer import Placer
 from nn_viz import NeuralNetworkViz
 
 NEW = False
-SHOW =  not NEW
-NR_OLD_ONES = 3
-from_nr = 324
+SHOW = not NEW
+NR_OLD_ONES = 10
+from_nr = 350
 
 class Main:
     def __init__(self):

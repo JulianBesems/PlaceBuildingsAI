@@ -253,7 +253,7 @@ class Puzzle(Individual):
     def generateStartPoints(self):
 
         middle = (int(self.board.width/2), int(self.board.height/2))
-        maxR = min((int(self.board.width/3), int(self.board.height/3)))
+        maxR = min((int(self.board.width/3), int(self.board.height/3)))-1
         startPoints = [middle]
 
         values = self.values
@@ -717,8 +717,8 @@ def load_puzzle(population_folder: str, individual_name: str, settings: Optional
     with open(puzzle_constructor_file, 'r', encoding='utf-8') as fp:
         constructor_params = json.load(fp)
 
-    puzzle = Puzzle(settings['board_size'], constructor_params['nrGroups'],
-                  constructor_params['nrBlocks'],
+    puzzle = Puzzle(settings['board_size'], settings['nrGroupRange'][0],
+                  settings['nrBlocksRange'][0],
                   chromosome=params,
                   hidden_layer_architecture=settings['hidden_network_architecture'],
                   hidden_activation=settings['hidden_layer_activation'],

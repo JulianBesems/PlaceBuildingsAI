@@ -11,6 +11,7 @@ from shapely import geometry
 from copy import copy
 from placer import *
 from misc import *
+from exportRhinoGroupOutcome import *
 
 pygame.font.init()
 myfont = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 22)
@@ -273,8 +274,11 @@ class Graphics:
                 pass
                 #self.draw_dot(d)
             else:
-                pygame.image.save(self._screen, "screenshotsTests/screenshot" + str(SCREENSHOT_NR) + ".jpeg")
+                #pygame.image.save(self._screen, "screenshotsTests3/screenshot7" + str(SCREENSHOT_NR) + ".jpeg")
+                #e = Exporter(self.puzzle, [1000,1000,1000], SCREENSHOT_NR)
+                #e.export()
                 SCREENSHOT_NR +=1
+
                 self.restart()
                 self.dot_surface.fill([0,0,0,0])
                 self.NEW_Network = True

@@ -2,7 +2,7 @@ import numpy as np
 
 
 settings = {
-    'board_size':      (80, 80),
+    'board_size':      (60, 60),
 
     'distanceSetting': 'manhattan',
 
@@ -10,7 +10,7 @@ settings = {
 
     "Values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.8, 0.9, 0.91],
 
-    'nrBlocksRange': (1600,1600),
+    'nrBlocksRange': (1800,1800),
 
     'fillingOrder' : "random",
 
@@ -59,7 +59,7 @@ settings = {
     ## Selection ##
 
     # Number of parents that will be used for reproducing
-    'num_parents':                 500,
+    'num_parents':                 10,
     # Number of offspring that will be created. Keep num_offspring >= num_parents
     'num_offspring':               1000,
     # The selection type to use for the next generation.

@@ -10,6 +10,8 @@ from decimal import Decimal
 import random, pickle
 import csv
 
+from exportRhinoGroupOutcome import *
+
 from neural_network import FeedForwardNetwork, sigmoid, linear, relu
 
 from genetic_algorithm.population import Population
@@ -91,6 +93,9 @@ class Placer:
 
             if fitness > self.best_fitness:
                 self.best_fitness = fitness
+
+            #e = Exporter(self.puzzle, [1000,1000,1000], self._current_individual)
+            #e.export()
 
             #self.exportNNWeights()
             self._current_individual += 1
