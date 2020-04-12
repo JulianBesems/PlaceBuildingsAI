@@ -2,15 +2,15 @@ import numpy as np
 
 
 settings = {
-    'board_size':      (60, 60),
+    'board_size':      (128, 128),
 
     'distanceSetting': 'manhattan',
 
-    'nrGroupRange': (10, 10),
+    'nrGroupRange': (1, 1),
 
     "Values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.8, 0.9, 0.91],
 
-    'nrBlocksRange': (1800,1800),
+    'nrBlocksRange': (7000,7000),
 
     'fillingOrder' : "random",
 

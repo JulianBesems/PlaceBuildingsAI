@@ -20,7 +20,7 @@ myfontL = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 50)
 myfontS = pygame.font.Font('/Users/julianbesems/Library/Fonts/HELR45W.ttf', 14)
 
 bcc = 220
-backgroundColour = pygame.Color(242,242,240)
+backgroundColour = pygame.Color(255,255,255)
 textColour = pygame.Color(86,82,71)
 
 class Node:
@@ -74,16 +74,16 @@ class Graphics:
         else:
             color = dot.colour
         if surface:
-            #pygame.draw.rect(surface, color, (centre[0] - int(r/2), centre [1] - int(r/2), int(r/2)*2, int(r/2)*2))
-            pygame.draw.circle(surface, color, centre, r)
+            pygame.draw.rect(surface, color, (centre[0] - int(r/2), centre [1] - int(r/2), int(r/2)*2, int(r/2)*2))
+            #pygame.draw.circle(surface, color, centre, r)
         else:
             try:
                 v = max(int((1 - (1-dot.value) * 2) * r), 1)
-                #pygame.draw.rect(self.dot_surface, color, (centre, (w,h)))
-                pygame.draw.circle(self.dot_surface, color, centre, r, v)
+                pygame.draw.rect(self.dot_surface, color, (centre, (w,h)))
+                #pygame.draw.circle(self.dot_surface, color, centre, r, v)
             except AttributeError:
-                #pygame.draw.rect(self.dot_surface, color, (centre, (w,h)))
-                pygame.draw.circle(self.dot_surface, color, centre, r)
+                pygame.draw.rect(self.dot_surface, color, (centre, (w,h)))
+                #pygame.draw.circle(self.dot_surface, color, centre, r)
 
     def map_coordinates(self, p):
         m = min((self.screen_width-4*self.buffer)/self.puzzle.board_size[0], (self.screen_height-4*self.buffer)/self.puzzle.board_size[1])

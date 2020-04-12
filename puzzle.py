@@ -8,6 +8,8 @@ import os
 import json
 import itertools
 import copy, pickle, math
+import PIL
+from PIL import Image
 
 
 from misc import *
@@ -21,6 +23,12 @@ with open ("lowTownValues.p", 'rb') as fp:
 with open ("functionTownValues.p", 'rb') as fp:
             functionTownValues = pickle.load(fp)
 
+def getFloorPlate(file):
+    im = Image.open(file)
+    return np.array(im)
+
+FLOORPLATE = getFloorPlate("FloorPlates/samples_49_1.png")
+
 class Block:
     def __init__(self,
                 nr: Optional[int] = None,
@@ -32,9 +40,9 @@ class Block:
                 kind: Optional[List] = "circle"):
         self.nr = nr
         self.value = value
-        self.colour = colour
         self.x = x
         self.y = y
+        self.colour = colour
         self.size = size
         self.kind = kind
 
@@ -555,6 +563,7 @@ class Puzzle(Individual):
 
         b.x = c[0]
         b.y = c[1]
+        b.colour = FLOORPLATE[b.x, b.y]
         b.value = outval
         self.board.cells[c] = b
         self.groups[b.nr].zones[d[0]][1] = c
